@@ -1,0 +1,12 @@
+{application, stacko,
+ [
+  {description, ""},
+  {vsn, "1"},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {mod, { stacko_app, []}},
+  {env, []}
+ ]}.
