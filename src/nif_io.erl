@@ -17,14 +17,13 @@
 
 -export([nif_in/0]).
 -export([nif_out/0]).
+-export([dispatch/1]).
 
 
 nif_in() ->
     case packet:read_clt() of
-        {ok, Packet} -> Packet                  % send here
+        {ok, Packet} -> dispatch(Packet)
     end,
-    timer:sleep(500),
-    io:format("in nif_in!~n",[]),
     nif_in().
 
 nif_out() ->
@@ -34,4 +33,8 @@ nif_out() ->
     end,
     nif_out().
     
-
+dispatch(Packet) ->
+    Packet,
+    timer:sleep(500),
+    io:format("in nif_in!~n",[]).
+    
