@@ -16,12 +16,20 @@
 -module(nif_io).
 
 -export([nif_in/0]).
--export([nif_out/1]).
+-export([nif_out/0]).
 
 
 nif_in() ->
     Packet = packet:read_clt(),
-    Packet.
+    Packet,
+    %% timer:sleep(1000),
+    nif_in().
 
-nif_out(Packet) ->
-    packet:write_clt(Packet).
+nif_out() ->
+    receive
+        Packet when erlang:is_binary(Packet) -> packet:write_clt(Packet);
+        _Other -> _Other
+    end,
+    nif_out().
+    
+
