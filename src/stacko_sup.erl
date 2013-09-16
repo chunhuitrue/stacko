@@ -21,22 +21,16 @@
 -export([start_link/0]).
 -export([init/1]).
 
-%% Helper macro for declaring children of supervisor
--define(CHILD(I, Type), {I, {I, start_link, []}, permanent, 5000, Type, [I]}).
-
 
 start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 init([]) ->
     Superspec = {one_for_one, 10, 3600},
-    %% {Id, {Module, Function, Arguments}, Restart, Shutdown, Type, ModuleList}
-    Childspec = {l23_sup,                       % id 和 l23 中 start_link 的名字冲突？
+    Childspec = {l23_sup,                       % id
                  {l23_sup, start_link, []},     % {Module, Function, Arguments}
                  permanent,                     % Restart
                  1000,                          % Shutdown
                  supervisor,                    % Type
-                 l23_sup},                      % ModuleList
+                 [l23_sup]},                    % ModuleList
     {ok, {Superspec, [Childspec]}}.
-    %% {ok, { {one_for_one, 5, 10}, []} }.
-
