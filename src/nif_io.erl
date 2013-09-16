@@ -20,9 +20,11 @@
 
 
 nif_in() ->
-    Packet = packet:read_clt(),
-    Packet,
-    %% timer:sleep(1000),
+    case packet:read_clt() of
+        {ok, Packet} -> Packet                  % send here
+    end,
+    timer:sleep(500),
+    io:format("in nif_in!~n",[]),
     nif_in().
 
 nif_out() ->
