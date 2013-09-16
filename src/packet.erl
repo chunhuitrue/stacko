@@ -19,7 +19,6 @@
 -export([read_clt/0,
          write_clt/1,
          read_srv/0,
-         init/0,
          write_srv/1]).
 
 -on_load(init/0).
