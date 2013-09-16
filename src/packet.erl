@@ -19,9 +19,10 @@
 -export([read_clt/0,
          write_clt/1,
          read_srv/0,
+         init/0,
          write_srv/1]).
 
--on_load(init/0).
+%% -on_load(init/0).
 
 -define(nif_stub, nif_stub_error(?LINE)).
 nif_stub_error(Line) ->
@@ -36,7 +37,8 @@ init() ->
                   Path ->
                       Path
               end,
-    erlang:load_nif(filename:join(PrivDir, "stacko_drv"), 0).
+    erlang:load_nif(filename:join(PrivDir, "stacko_drv"), 0),
+    PrivDir.
 
 read_clt() ->
     ?nif_stub.
