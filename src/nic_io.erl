@@ -21,7 +21,7 @@
 
 agent_in() ->
     case packet:read_clt() of
-        {ok, Packet} -> dispatch(Packet)
+        {ok, Packet} -> send(Packet)
     end,
     agent_in().
 
@@ -32,7 +32,7 @@ agent_out() ->
     end,
     agent_out().
     
-dispatch(Packet) ->
+send(Packet) ->
     Packet,
     timer:sleep(500),
     io:format("in nif_in!~n",[]).
