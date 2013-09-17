@@ -25,15 +25,20 @@ agent_in() ->
     end,
     agent_in().
 
+%% agent_out() ->
+%%     receive
+%%         Packet when erlang:is_binary(Packet) -> packet:write_clt(Packet);
+%%         _Other -> _Other
+%%     end,
+%%     agent_out().
+
 agent_out() ->
-    receive
-        Packet when erlang:is_binary(Packet) -> packet:write_clt(Packet);
-        _Other -> _Other
-    end,
+    %% io:format("in nif_in!~n",[]),
+    timer:sleep(1000),
     agent_out().
-    
+
 send(Packet) ->
     Packet,
-    timer:sleep(500),
+    timer:sleep(1000),
     io:format("in nif_in!~n",[]).
     

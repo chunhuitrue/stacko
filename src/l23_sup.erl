@@ -20,11 +20,38 @@
 
 -export([start_link/0]).
 -export([init/1]).
+-export([start_agent_in/0]).
+-export([start_agent_out/0]).
 
 
 start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 init([]) ->
-    {ok, { {one_for_one, 5, 10}, []} }.
+    SuperSpec = {one_for_one, 5, 5},
+    ChildSpec = {agen_out,                      % id
+                 {nic_io, agent_out, []},       % {Module, Function, Arguments}
+                 permanent,                     % Restart
+                 brutal_kill,                   % Shutdown
+                 worker,                        % Type
+                 [nic_io]},                     % ModuleList
+    {ok, {SuperSpec, [ChildSpec]}}.
 
+start_agent_in() ->
+    ChildSpec = {agen_in,                       % id
+                 {nic_io, agent_in, []},        % {Module, Function, Arguments}
+                 permanent,                     % Restart
+                 1000,                          % Shutdown
+                 worker,                        % Type
+                 [nic_io]},                     % ModuleList
+    supervisor:start_child(l23_sup, ChildSpec).
+
+start_agent_out() ->
+    ChildSpec = {agen_out,                      % id
+                 {nic_io, agent_out, []},       % {Module, Function, Arguments}
+                 permanent,                     % Restart
+                 brutal_kill,                   % Shutdown
+                 worker,                        % Type
+                 [nic_io]},                     % ModuleList
+    supervisor:start_child(l23_sup, ChildSpec).
+    
