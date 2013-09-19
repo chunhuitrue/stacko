@@ -29,13 +29,14 @@ start_link() ->
 
 init([]) ->
     SuperSpec = {one_for_one, 5, 5},
-    ChildSpec = {agen_out,                      % id
-                 {nic_io, agent_out, []},       % {Module, Function, Arguments}
-                 permanent,                     % Restart
-                 brutal_kill,                   % Shutdown
-                 worker,                        % Type
-                 [nic_io]},                     % ModuleList
-    {ok, {SuperSpec, [ChildSpec]}}.
+    %% ChildSpec = {agen_out,                      % id
+    %%              {nic_io, agent_out, []},       % {Module, Function, Arguments}
+    %%              permanent,                     % Restart
+    %%              brutal_kill,                   % Shutdown
+    %%              worker,                        % Type
+    %%              [nic_io]},                     % ModuleList
+    %% {ok, {SuperSpec, [ChildSpec]}}.
+    {ok, {SuperSpec, []}}.
 
 start_agent_in() ->
     ChildSpec = {agen_in,                       % id

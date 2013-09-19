@@ -20,18 +20,10 @@
 
 -export([start_link/0]).
 -export([init/1]).
--export([start_in_shell/0]).
 
-
-start_in_shell() ->
-    {ok, Pid} = supervisor:start_link({local, ?MODULE}, ?MODULE, []),
-    unlink(Pid),
-    conf_file(),
-    {ok, Pid}.
 
 start_link() ->
     {ok, Pid} = supervisor:start_link({local, ?MODULE}, ?MODULE, []),
-    %% conf_file(),
     {ok, Pid}.
 
 init([]) ->
@@ -45,7 +37,3 @@ init([]) ->
                  [l23_sup]},                    % ModuleList
     %% todo l4 sup
     {ok, {SuperSpec, [ChildSpec]}}.
-
-conf_file() ->
-    l23_sup:start_agent_in(),
-    l23_sup:start_agent_out().
