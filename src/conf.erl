@@ -52,5 +52,5 @@ code_change(_Oldv, _State, _Extra) ->
     {ok, null}.
 
 load_conf() ->
-    io:format("in watch conf file!~n",[]),
+    %% io:format("in watch conf file!~n",[]),
     ok.

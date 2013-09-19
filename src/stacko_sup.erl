@@ -29,11 +29,16 @@ start_link() ->
 init([]) ->
     SuperSpec = {one_for_one, 5, 5},
     %% l23 sup
-    ChildSpec = {l23_sup,                       % id
-                 {l23_sup, start_link, []},     % {Module, Function, Arguments}
-                 permanent,                     % Restart
-                 1000,                          % Shutdown
-                 supervisor,                    % Type
-                 [l23_sup]},                    % ModuleList
-    %% todo l4 sup
-    {ok, {SuperSpec, [ChildSpec]}}.
+    L23Spec = {l23_sup,                       % id
+               {l23_sup, start_link, []},     % {Module, Function, Arguments}
+               permanent,                     % Restart
+               brutal_kill,                   % Shutdown
+               supervisor,                    % Type
+               [l23_sup]},                    % ModuleList
+    ConfSpec = {conf,                          % id
+                {conf, start_link, []},        % {Module, Function, Arguments}
+                permanent,                     % Restart
+                brutal_kill,                   % Shutdown
+                worker,                        % Type
+                [conf]},                       % ModuleList
+    {ok, {SuperSpec, [L23Spec, ConfSpec]}}.
