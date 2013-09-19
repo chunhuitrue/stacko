@@ -14,3 +14,36 @@
 
 
 -module(conf).
+
+-behaviour(gen_server).
+
+-export([init/1]).
+-export([start_link/0]).
+-export([handle_call/3]).
+-export([handle_cast/2]).
+-export([handle_info/2]).
+-export([terminate/2]).
+-export([code_change/3]).
+
+
+init([]) ->
+    {ok, null, 0}.
+
+start_link() ->
+    gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
+
+handle_info(timeout, _State) ->
+    io:format("in watch conf file!~n",[]),
+    {noreply, null}.
+
+handle_call(_Request, _Rrom, _State) ->
+    {noreply, null}.
+
+handle_cast(_Request, _State) ->
+    {noreply, null}.
+
+terminate(_Reason, _STate) ->
+    ok.
+
+code_change(_Oldv, _State, _Extra) ->
+    {ok, null}.
