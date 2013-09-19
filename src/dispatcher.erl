@@ -17,7 +17,7 @@
 
 -behaviour(gen_server).
 -export([init/1]).
--export([start_link/0]).
+-export([start_link/1]).
 -export([handle_call/3]).
 -export([handle_cast/2]).
 -export([handle_info/2]).
@@ -26,4 +26,31 @@
 
 
 init([]) ->
+    {ok, null}.
+
+
+start_link(Name) ->
+    gen_server:start_link({local, Name}, ?MODULE, [], []).
+
+
+handle_cast(Packet, _State) ->
+    io:format("in dispatcher, recv a packet!~n",[]),
+    Packet,
+    %% 判断 Packet 是否是二进制,
+    {noreply, null}.
+
+
+handle_call(_Request, _Rrom, _State) ->
+    {noreply, null}.
+
+
+handle_info(_Request, _State) ->
+    {noreply, null}.
+
+
+terminate(_Reason, _STate) ->
+    ok.
+
+
+code_change(_Oldv, _State, _Extra) ->
     {ok, null}.

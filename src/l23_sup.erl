@@ -20,8 +20,7 @@
 
 -export([start_link/0]).
 -export([init/1]).
--export([start_agent_in/0]).
--export([start_agent_out/0]).
+-export([start_dispatcher/0]).
 
 
 start_link() ->
@@ -33,22 +32,18 @@ init([]) ->
     {ok, {SuperSpec, []}}.
 
 
-start_agent_in() ->
-    ChildSpec = {agen_in,                       % id
-                 {nic_io, agent_in, []},        % {Module, Function, Arguments}
-                 permanent,                     % Restart
-                 1000,                          % Shutdown
-                 worker,                        % Type
-                 [nic_io]},                     % ModuleList
-    supervisor:start_child(l23_sup, ChildSpec).
-
-
-start_agent_out() ->
-    ChildSpec = {agen_out,                      % id
-                 {nic_io, agent_out, []},       % {Module, Function, Arguments}
-                 permanent,                     % Restart
-                 brutal_kill,                   % Shutdown
-                 worker,                        % Type
-                 [nic_io]},                     % ModuleList
-    supervisor:start_child(l23_sup, ChildSpec).
-    
+start_dispatcher() ->
+    ChildSpec = {dispatcher01,                             % id
+                 {dispatcher, start_link, [dispatcher01]}, % {Module, Function, Arguments}
+                 permanent,                    % Restart
+                 brutal_kill,                  % Shutdown
+                 worker,                       % Type
+                 [dispatcher]},                    % ModuleList
+    supervisor:start_child(l23_sup, ChildSpec),
+    ChildSpec2 = {dispatcher02,                             % id
+                 {dispatcher, start_link, [dispatcher02]}, % {Module, Function, Arguments}
+                 permanent,                    % Restart
+                 brutal_kill,                  % Shutdown
+                 worker,                       % Type
+                 [dispatcher]},                    % ModuleList
+    supervisor:start_child(l23_sup, ChildSpec2).
