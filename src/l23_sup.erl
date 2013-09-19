@@ -27,9 +27,11 @@
 start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
+
 init([]) ->
     SuperSpec = {one_for_one, 5, 5},
     {ok, {SuperSpec, []}}.
+
 
 start_agent_in() ->
     ChildSpec = {agen_in,                       % id
@@ -39,6 +41,7 @@ start_agent_in() ->
                  worker,                        % Type
                  [nic_io]},                     % ModuleList
     supervisor:start_child(l23_sup, ChildSpec).
+
 
 start_agent_out() ->
     ChildSpec = {agen_out,                      % id

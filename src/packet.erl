@@ -23,9 +23,11 @@
 
 -on_load(init/0).
 
+
 -define(nif_stub, nif_stub_error(?LINE)).
 nif_stub_error(Line) ->
     erlang:nif_error({nif_not_loaded,module,?MODULE,line,Line}).
+
 
 init() ->
     PrivDir = case code:priv_dir(?MODULE) of
@@ -38,14 +40,18 @@ init() ->
               end,
     erlang:load_nif(filename:join(PrivDir, "stacko_drv"), 0).
 
+
 read_clt() ->
     ?nif_stub.
+
 
 write_clt(Buf) when is_binary(Buf) ->
     ?nif_stub.
 
+
 read_srv() ->
     ?nif_stub.
+
 
 write_srv(Buf) when is_binary(Buf) ->
     ?nif_stub.

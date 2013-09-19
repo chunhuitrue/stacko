@@ -16,7 +16,6 @@
 -module(conf).
 
 -behaviour(gen_server).
-
 -export([init/1]).
 -export([start_link/0]).
 -export([handle_call/3]).
@@ -27,29 +26,37 @@
 
 -define(LOOP_TIME, 1000).
 
+
 init([]) ->
     erlang:send_after(?LOOP_TIME, self(), watch_conf),
     {ok, null}.
 
+
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
+
 
 handle_info(watch_conf, _State) ->
     load_conf(),
     erlang:send_after(?LOOP_TIME, self(), watch_conf),
     {noreply, null}.
 
+
 handle_call(_Request, _Rrom, _State) ->
     {noreply, null}.
+
 
 handle_cast(_Request, _State) ->
     {noreply, null}.
 
+
 terminate(_Reason, _STate) ->
     ok.
 
+
 code_change(_Oldv, _State, _Extra) ->
     {ok, null}.
+
 
 load_conf() ->
     %% io:format("in watch conf file!~n",[]),
