@@ -25,15 +25,18 @@
 -export([terminate/2]).
 -export([code_change/3]).
 
+-define(LOOP_TIME, 1000).
 
 init([]) ->
-    {ok, null, 0}.
+    erlang:send_after(?LOOP_TIME, self(), watch_conf),
+    {ok, null}.
 
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
-handle_info(timeout, _State) ->
-    io:format("in watch conf file!~n",[]),
+handle_info(watch_conf, _State) ->
+    load_conf(),
+    erlang:send_after(?LOOP_TIME, self(), watch_conf),
     {noreply, null}.
 
 handle_call(_Request, _Rrom, _State) ->
@@ -47,3 +50,7 @@ terminate(_Reason, _STate) ->
 
 code_change(_Oldv, _State, _Extra) ->
     {ok, null}.
+
+load_conf() ->
+    io:format("in watch conf file!~n",[]),
+    ok.
