@@ -16,13 +16,12 @@
 
 -module(packet).
 
--export([read_clt/0,
-         write_clt/1,
-         read_srv/0,
-         write_srv/1]).
+-export([open_nic/1]).
+-export([close_nic/1]).
+-export([read_nic/1]).
+-export([write_nic/1]).
 
 -on_load(init/0).
-
 
 -define(nif_stub, nif_stub_error(?LINE)).
 nif_stub_error(Line) ->
@@ -41,17 +40,17 @@ init() ->
     erlang:load_nif(filename:join(PrivDir, "stacko_drv"), 0).
 
 
-read_clt() ->
+open_nic(Name) when is_atom(Name) ->
     ?nif_stub.
 
 
-write_clt(Buf) when is_binary(Buf) ->
+close_nic(Name) when is_atom(Name) ->
     ?nif_stub.
 
 
-read_srv() ->
+read_nic(Index) when is_integer(Index) ->
     ?nif_stub.
 
 
-write_srv(Buf) when is_binary(Buf) ->
+write_nic(Index) when is_integer(Index) ->
     ?nif_stub.
