@@ -17,30 +17,29 @@
 
 -behaviour(gen_server).
 -export([init/1]).
--export([start_link/2]).
+-export([start_link/3]).
 -export([handle_call/3]).
 -export([handle_cast/2]).
 -export([handle_info/2]).
 -export([terminate/2]).
 -export([code_change/3]).
 
--export([nic_in/2]).
+-export([nic_in/3]).
 
 
-init([NameIn, Index]) ->
+init([NameIn, Socket, DispatcherNum]) ->
     Name = list_to_atom(atom_to_list(NameIn) ++ "read"),
-    register(Name, spawn_link(nic_in, nic_in, [Name, Index])),
-    {ok, Index}.
+    register(Name, spawn_link(nic_in, nic_in, [Name, Socket, DispatcherNum])),
+    {ok, Socket}.
 
 
-nic_in(NicName, Index) ->
+nic_in(NicName, Socket, DispatcherNum) ->
     timer:sleep(1000),
-    Index,
-    nic_in(NicName, Index).
+    nic_in(NicName, Socket, DispatcherNum).
 
 
-start_link(NameIn, Index) ->
-    gen_server:start_link({local, NameIn}, ?MODULE, [NameIn, Index], []).
+start_link(NameIn, Socket, DispatcherNum) ->
+    gen_server:start_link({local, NameIn}, ?MODULE, [NameIn, Socket, DispatcherNum], []).
 
 
 handle_cast(_Request, State) ->

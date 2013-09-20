@@ -26,17 +26,17 @@
 
 
 
-init([Index]) ->
-    {ok, Index}.
+init([Socket]) ->
+    {ok, Socket}.
 
 
-start_link(NicName, Index) ->
-    gen_server:start_link({local, NicName}, ?MODULE, [Index], []).
+start_link(NicName, Socket) ->
+    gen_server:start_link({local, NicName}, ?MODULE, [Socket], []).
 
 
-handle_cast(Packet, Index) ->
+handle_cast(Packet, Socket) ->
     Packet,
-    {noreply, Index}.
+    {noreply, Socket}.
 
 
 handle_info(_Request, State) ->
