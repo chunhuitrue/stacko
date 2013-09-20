@@ -33,7 +33,9 @@ init([]) ->
 
 
 start_link() ->
-    gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
+    {ok, Pid} = gen_server:start_link({local, ?MODULE}, ?MODULE, [], []),
+    test_conf(),
+    {ok, Pid}.
 
 
 handle_info(watch_conf, _State) ->
@@ -61,3 +63,7 @@ code_change(_Oldv, _State, _Extra) ->
 load_conf() ->
     %% io:format("in watch conf file!~n",[]),
     ok.
+
+test_conf() ->
+    %% 10 dispatchers
+    l23_sup:start_dispatcher(10 -1).

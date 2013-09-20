@@ -20,7 +20,7 @@
 
 -export([start_link/0]).
 -export([init/1]).
--export([start_dispatcher/0]).
+-export([start_dispatcher/1]).
 
 
 start_link() ->
@@ -32,18 +32,17 @@ init([]) ->
     {ok, {SuperSpec, []}}.
 
 
-start_dispatcher() ->
-    ChildSpec = {dispatcher01,                             % id
-                 {dispatcher, start_link, [dispatcher01]}, % {Module, Function, Arguments}
-                 permanent,                    % Restart
-                 brutal_kill,                  % Shutdown
-                 worker,                       % Type
-                 [dispatcher]},                    % ModuleList
-    supervisor:start_child(l23_sup, ChildSpec),
-    ChildSpec2 = {dispatcher02,                             % id
-                 {dispatcher, start_link, [dispatcher02]}, % {Module, Function, Arguments}
-                 permanent,                    % Restart
-                 brutal_kill,                  % Shutdown
-                 worker,                       % Type
-                 [dispatcher]},                    % ModuleList
-    supervisor:start_child(l23_sup, ChildSpec2).
+start_dispatcher(N) ->
+    if N >= 0 ->
+            Name = list_to_atom(atom_to_list(dispatcher) ++ integer_to_list(N)),
+            ChildSpec = {Name,                             % id
+                         {dispatcher, start_link, [Name]}, % {Module, Function, Arguments}
+                         permanent,                        % Restart
+                         brutal_kill,                      % Shutdown
+                         worker,                           % Type
+                         [dispatcher]},                    % ModuleList
+            supervisor:start_child(l23_sup, ChildSpec),
+            start_dispatcher(N - 1);
+       N < 0 ->
+            ok
+    end.

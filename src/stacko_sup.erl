@@ -23,9 +23,8 @@
 
 
 start_link() ->
-    {ok, Pid} = supervisor:start_link({local, ?MODULE}, ?MODULE, []),
-    {ok, Pid}.
-
+    supervisor:start_link({local, ?MODULE}, ?MODULE, []).
+    
 
 init([]) ->
     SuperSpec = {one_for_one, 5, 5},
