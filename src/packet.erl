@@ -19,7 +19,7 @@
 -export([open_nic/1]).
 -export([close_nic/1]).
 -export([read_nic/1]).
--export([write_nic/1]).
+-export([write_nic/2]).
 
 -on_load(init/0).
 
@@ -52,5 +52,6 @@ read_nic(Index) when is_integer(Index) ->
     ?nif_stub.
 
 
-write_nic(Index) when is_integer(Index) ->
+write_nic(Index, Packet) when is_integer(Index), 
+                              is_binary(Packet) ->
     ?nif_stub.

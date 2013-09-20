@@ -125,7 +125,8 @@ static ERL_NIF_TERM open_nic(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]
         enif_get_atom(env, argv[0], name, sizeof(name), ERL_NIF_LATIN1);
         for (i = 0; i < MAXNIC; i++) {
                 if (strcmp(name, nic[i].nic_name) == 0) {
-                        return enif_make_tuple2(env, enif_make_atom(env, "error"), 
+                        return enif_make_tuple2(env, 
+                                                enif_make_atom(env, "error"), 
                                                 enif_make_atom(env, "replicate"));
                 }
         }
@@ -137,17 +138,20 @@ static ERL_NIF_TERM open_nic(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]
                 }
         }
         if (index == -1) {
-                return enif_make_tuple2(env, enif_make_atom(env, "error"), 
+                return enif_make_tuple2(env, 
+                                        enif_make_atom(env, "error"), 
                                         enif_make_atom(env, "too_many"));
         }
 
         nic[index].socket_fd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
         if (nic[index].socket_fd == -1) {
-                return enif_make_tuple2(env, enif_make_atom(env, "error"), 
+                return enif_make_tuple2(env, 
+                                        enif_make_atom(env, "error"), 
                                         enif_make_atom(env, "socket"));
         }
         if ((bind_socket(nic[index].socket_fd, nic[index].nic_name)) == -1) {
-                return enif_make_tuple2(env, enif_make_atom(env, "error"), 
+                return enif_make_tuple2(env, 
+                                        enif_make_atom(env, "error"), 
                                         enif_make_atom(env, "bind"));
         }
 
@@ -170,19 +174,65 @@ static ERL_NIF_TERM close_nic(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[
                 }
         }
 
-        return enif_make_tuple2(env, enif_make_atom(env, "error"), 
+        return enif_make_tuple2(env, 
+                                enif_make_atom(env, "error"), 
                                 enif_make_atom(env, "no_name"));
 }
 
 
 static ERL_NIF_TERM read_nic(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
-        return enif_make_atom(env, "ok");
+        int          index = -1;
+        int          err;
+        ssize_t      ret_size;
+        ErlNifBinary buf   = {0};
+
+        enif_get_int(env, argv[0], &index);
+        if (index <= 0) {
+                return enif_make_tuple2(env, 
+                                        enif_make_atom(env, "error"), 
+                                        enif_make_atom(env, "arg"));
+        }
+
+        if (!enif_alloc_binary(MTU, &buf)) {
+                return enif_make_tuple2(env, 
+                                        enif_make_atom(env, "error"), 
+                                        enif_make_atom(env, "alloc"));
+        }
+
+        if ((ret_size = read(nic[index].socket_fd, buf.data, buf.size)) == -1) {
+                err = errno;
+                enif_release_binary(&buf);
+                return enif_make_tuple2(env, 
+                                        enif_make_atom(env, "error"), 
+                                        enif_make_atom(env, erl_errno_id(err)));
+        }
+        return enif_make_binary(env, &buf);
 }
 
 
 static ERL_NIF_TERM write_nic(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
+        int          index = -1;
+        ErlNifBinary buf   = {0};
+
+        enif_get_int(env, argv[0], &index);
+        if (index <= 0) {
+                return enif_make_tuple2(env, 
+                                        enif_make_atom(env, "error"), 
+                                        enif_make_atom(env, "arg"));
+        }
+
+        if (!enif_inspect_binary(env, argv[1], &buf)) {
+                return enif_make_badarg(env);
+        }
+
+        if (write(nic[index].socket_fd, buf.data, buf.size) == -1) {
+                return enif_make_tuple2(env, enif_make_atom(env, "error"), 
+                                        enif_make_atom(env, erl_errno_id(errno)));
+                
+        }
+
         return enif_make_atom(env, "ok");
 }
 
