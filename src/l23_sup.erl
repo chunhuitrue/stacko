@@ -50,7 +50,7 @@ start_dispatcher(N) ->
 
 
 start_nic(NicName) ->
-    %% init socket here
+    packet:open_nic(NicName),
 
     NameIn = list_to_atom(atom_to_list(NicName) ++ "ingen"),
     InSpec = {NameIn,                         % id

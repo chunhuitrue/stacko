@@ -71,6 +71,6 @@ test_conf() ->
 
     NicName1 = p2p1,
     l23_sup:start_nic(NicName1),
-    NicName2 = p2p7,
+    NicName2 = p7p1,
     l23_sup:start_nic(NicName2).
 

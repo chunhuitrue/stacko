@@ -27,7 +27,6 @@
 -export([nic_in/1]).
 
 
-
 init([NameIn]) ->
     Name = list_to_atom(atom_to_list(NameIn) ++ "read"),
     register(Name, spawn_link(nic_in, nic_in, [Name])),
