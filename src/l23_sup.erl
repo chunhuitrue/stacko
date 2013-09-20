@@ -50,21 +50,21 @@ start_dispatcher(N) ->
 
 
 start_nic(NicName) ->
-    packet:open_nic(NicName),
+    Index = packet:open_nic(NicName),
 
     NameIn = list_to_atom(atom_to_list(NicName) ++ "ingen"),
-    InSpec = {NameIn,                         % id
-              {nic_in, start_link, [NameIn]}, % {Module, Function, Arguments}
-              permanent,                      % Restart
-              brutal_kill,                    % Shutdown
-              worker,                         % Type
-              [nic_in]},                      % ModuleList
+    InSpec = {NameIn,                                % id
+              {nic_in, start_link, [NameIn, Index]}, % {Module, Function, Arguments}
+              permanent,                             % Restart
+              brutal_kill,                           % Shutdown
+              worker,                                % Type
+              [nic_in]},                             % ModuleList
     supervisor:start_child(l23_sup, InSpec),
 
-    OutSpec = {NicName,                          % id
-               {nic_out, start_link, [NicName]}, % {Module, Function, Arguments}
-               permanent,                        % Restart
-               brutal_kill,                      % Shutdown
-               worker,                           % Type
-               [nic_out]},                       % ModuleList
+    OutSpec = {NicName,                                 % id
+               {nic_out, start_link, [NicName, Index]}, % {Module, Function, Arguments}
+               permanent,                               % Restart
+               brutal_kill,                             % Shutdown
+               worker,                                  % Type
+               [nic_out]},                              % ModuleList
     supervisor:start_child(l23_sup, OutSpec).

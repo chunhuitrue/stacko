@@ -17,46 +17,47 @@
 
 -behaviour(gen_server).
 -export([init/1]).
--export([start_link/1]).
+-export([start_link/2]).
 -export([handle_call/3]).
 -export([handle_cast/2]).
 -export([handle_info/2]).
 -export([terminate/2]).
 -export([code_change/3]).
 
--export([nic_in/1]).
+-export([nic_in/2]).
 
 
-init([NameIn]) ->
+init([NameIn, Index]) ->
     Name = list_to_atom(atom_to_list(NameIn) ++ "read"),
-    register(Name, spawn_link(nic_in, nic_in, [Name])),
-    {ok, null}.
+    register(Name, spawn_link(nic_in, nic_in, [Name, Index])),
+    {ok, Index}.
 
 
-nic_in(NicName) ->
+nic_in(NicName, Index) ->
     timer:sleep(1000),
-    nic_in(NicName).
+    Index,
+    nic_in(NicName, Index).
 
 
-start_link(NameIn) ->
-    gen_server:start_link({local, NameIn}, ?MODULE, [NameIn], []).
+start_link(NameIn, Index) ->
+    gen_server:start_link({local, NameIn}, ?MODULE, [NameIn, Index], []).
 
 
-handle_cast(_Request, _State) ->
-    {noreply, null}.
+handle_cast(_Request, State) ->
+    {noreply, State}.
 
 
-handle_info(_Request, _State) ->
-    {noreply, null}.
+handle_info(_Request, State) ->
+    {noreply, State}.
 
 
-handle_call(_Request, _Rrom, _State) ->
-    {noreply, null}.
+handle_call(_Request, _Rrom, State) ->
+    {noreply, State}.
 
 
-terminate(_Reason, _STate) ->
+terminate(_Reason, _State) ->
     ok.
 
 
-code_change(_Oldv, _State, _Extra) ->
-    {ok, null}.
+code_change(_Oldv, State, _Extra) ->
+    {ok, State}.

@@ -17,7 +17,7 @@
 
 -behaviour(gen_server).
 -export([init/1]).
--export([start_link/1]).
+-export([start_link/2]).
 -export([handle_call/3]).
 -export([handle_cast/2]).
 -export([handle_info/2]).
@@ -26,30 +26,30 @@
 
 
 
-init([]) ->
-    {ok, null}.
+init([Index]) ->
+    {ok, Index}.
 
 
-start_link(NicName) ->
-    gen_server:start_link({local, NicName}, ?MODULE, [], []).
+start_link(NicName, Index) ->
+    gen_server:start_link({local, NicName}, ?MODULE, [Index], []).
 
 
-handle_cast(Packet, _State) ->
+handle_cast(Packet, Index) ->
     Packet,
-    {noreply, null}.
+    {noreply, Index}.
 
 
-handle_info(_Request, _State) ->
-    {noreply, null}.
+handle_info(_Request, State) ->
+    {noreply, State}.
 
 
-handle_call(_Request, _Rrom, _State) ->
-    {noreply, null}.
+handle_call(_Request, _Rrom, State) ->
+    {noreply, State}.
 
 
-terminate(_Reason, _STate) ->
+terminate(_Reason, _State) ->
     ok.
 
 
-code_change(_Oldv, _State, _Extra) ->
-    {ok, null}.
+code_change(_Oldv, State, _Extra) ->
+    {ok, State}.
