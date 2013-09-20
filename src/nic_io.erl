@@ -15,33 +15,43 @@
 
 -module(nic_io).
 
--export([agent_in/0]).
--export([agent_out/0]).
+-behaviour(gen_server).
+-export([init/1]).
+-export([start_link/1]).
+-export([handle_call/3]).
+-export([handle_cast/2]).
+-export([handle_info/2]).
+-export([terminate/2]).
+-export([code_change/3]).
 
 
-agent_in() ->
-    case packet:read_clt() of
-        {ok, Packet} -> send(Packet)
-    end,
-    agent_in().
+init([NicName]) ->
+    %% init name raw socket here
+    %% spawn read agent here
+    NicName,
+    {ok, null}.
 
 
-%% agent_out() ->
-%%     receive
-%%         Packet when erlang:is_binary(Packet) -> packet:write_clt(Packet);
-%%         _Other -> _Other
-%%     end,
-%%     agent_out().
+start_link(NicName) ->
+    gen_server:start_link({local, NicName}, ?MODULE, [NicName], []).
 
 
-agent_out() ->
-    %% io:format("in nif_in!~n",[]),
-    timer:sleep(1000),
-    agent_out().
-
-
-send(Packet) ->
+handle_cast(Packet, _State) ->
     Packet,
-    timer:sleep(1000),
-    io:format("in nif_in!~n",[]).
-    
+    {noreply, null}.
+
+
+handle_info(_Request, _State) ->
+    {noreply, null}.
+
+
+handle_call(_Request, _Rrom, _State) ->
+    {noreply, null}.
+
+
+terminate(_Reason, _STate) ->
+    ok.
+
+
+code_change(_Oldv, _State, _Extra) ->
+    {ok, null}.

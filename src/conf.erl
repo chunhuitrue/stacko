@@ -66,4 +66,5 @@ load_conf() ->
 
 test_conf() ->
     %% 10 dispatchers
-    l23_sup:start_dispatcher(10 -1).
+    Dispatcher_num = 10,
+    l23_sup:start_dispatcher(Dispatcher_num - 1).
