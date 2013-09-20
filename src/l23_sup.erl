@@ -21,6 +21,7 @@
 -export([start_link/0]).
 -export([init/1]).
 -export([start_dispatcher/1]).
+-export([start_nic/1]).
 
 
 start_link() ->
@@ -46,3 +47,15 @@ start_dispatcher(N) ->
        N < 0 ->
             ok
     end.
+
+
+start_nic(NicName) ->
+    %% init socket here
+
+    ChildSpec = {NicName,                         % id
+                 {nic_in, start_link, [NicName]}, % {Module, Function, Arguments}
+                 permanent,                       % Restart
+                 brutal_kill,                     % Shutdown
+                 worker,                          % Type
+                 [nic_in]},                       % ModuleList
+    supervisor:start_child(l23_sup, ChildSpec).

@@ -24,20 +24,27 @@
 -export([terminate/2]).
 -export([code_change/3]).
 
+-export([nic_in/1]).
+
 
 init([NicName]) ->
-    %% init name raw socket here
-    %% spawn read agent here
-    NicName,
+    %% io:format("in nic_in NicName: ~w ~n",[NicName]),
+    %% register(lchread, spawn_link(nic_in, nic_in, [NicName])),
+    spawn_link(nic_in, nic_in, [NicName]),
     {ok, null}.
 
 
+nic_in(NicName) ->
+    timer:sleep(1000),
+    nic_in(NicName).
+
+
 start_link(NicName) ->
-    gen_server:start_link({local, NicName}, ?MODULE, [NicName], []).
+    %% gen_server:start_link({local, lchgen}, ?MODULE, [NicName], []).
+    gen_server:start_link(?MODULE, [NicName], []).
 
 
-handle_cast(Packet, _State) ->
-    Packet,
+handle_cast(_Request, _State) ->
     {noreply, null}.
 
 
