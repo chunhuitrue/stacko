@@ -24,39 +24,55 @@
 -export([terminate/2]).
 -export([code_change/3]).
 
--export([nic_in/3]).
+-export([nic_in/2]).
 
 
 init([NameIn, Socket, DispatcherNum]) ->
     Name = list_to_atom(atom_to_list(NameIn) ++ "read"),
-    register(Name, spawn_link(nic_in, nic_in, [Name, Socket, DispatcherNum])),
-    {ok, Socket}.
+    register(Name, spawn_link(nic_in, nic_in, [Socket, DispatcherNum])),
+    {ok, null}.
 
 
-nic_in(NicName, Socket, DispatcherNum) ->
-    timer:sleep(1000),
-    nic_in(NicName, Socket, DispatcherNum).
+nic_in(Socket, DispatcherNum) ->
+    nic_in(Socket, DispatcherNum, DispatcherNum - 1).
+
+
+nic_in(Socket, DispatcherNum, Acc) when Acc >= 0 ->
+    case packet:read_nic(Socket) of
+        {error, _} ->
+            %% io:format("in read, read error!~n",[]),
+            nic_in(Socket, DispatcherNum, Acc - 1);
+        Packet ->
+            %% io:format("in read, read packet!~n",[]),
+            timer:sleep(1),
+            Name = list_to_atom(atom_to_list(dispatcher) ++ integer_to_list(Acc)),
+            dispatcher:to_dispatcher(Name, Packet),
+            nic_in(Socket, DispatcherNum, Acc - 1)
+    end;
+
+nic_in(Socket, DispatcherNum, Acc) when Acc < 0 ->
+    nic_in(Socket, DispatcherNum, DispatcherNum - 1).
 
 
 start_link(NameIn, Socket, DispatcherNum) ->
     gen_server:start_link({local, NameIn}, ?MODULE, [NameIn, Socket, DispatcherNum], []).
 
 
-handle_cast(_Request, State) ->
-    {noreply, State}.
+handle_cast(_Request, _State) ->
+    {noreply, null}.
 
 
-handle_info(_Request, State) ->
-    {noreply, State}.
+handle_info(_Request, _State) ->
+    {noreply, null}.
 
 
-handle_call(_Request, _Rrom, State) ->
-    {noreply, State}.
+handle_call(_Request, _Rrom, _State) ->
+    {noreply, null}.
 
 
 terminate(_Reason, _State) ->
     ok.
 
 
-code_change(_Oldv, State, _Extra) ->
-    {ok, State}.
+code_change(_Oldv, _State, _Extra) ->
+    {ok, null}.

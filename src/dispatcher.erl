@@ -24,33 +24,40 @@
 -export([terminate/2]).
 -export([code_change/3]).
 
+-export([to_dispatcher/2]).
 
-init([]) ->
-    {ok, null}.
+
+init([Name]) ->
+    {ok, Name}.
 
 
 start_link(Name) ->
-    gen_server:start_link({local, Name}, ?MODULE, [], []).
+    gen_server:start_link({local, Name}, ?MODULE, [Name], []).
 
 
-handle_cast(Packet, _State) ->
-    io:format("in dispatcher, recv a packet!~n",[]),
+to_dispatcher(Name, Packet) ->
+    %% io:format("to_dispatcher!~n"),
+    gen_server:cast(Name, Packet).
+
+
+handle_cast(Packet, Name) ->
+    %% timer:sleep(500),
+    io:format("~w get a packet!~n",[Name]),
     Packet,
-    %% 判断 Packet 是否是二进制,
-    {noreply, null}.
+    {noreply, Name}.
 
 
-handle_call(_Request, _Rrom, _State) ->
-    {noreply, null}.
+handle_call(_Request, _Rrom, State) ->
+    {noreply, State}.
 
 
-handle_info(_Request, _State) ->
-    {noreply, null}.
+handle_info(_Request, State) ->
+    {noreply, State}.
 
 
 terminate(_Reason, _STate) ->
     ok.
 
 
-code_change(_Oldv, _State, _Extra) ->
-    {ok, null}.
+code_change(_Oldv, State, _Extra) ->
+    {ok, State}.
