@@ -27,10 +27,10 @@
 -export([nic_in/1]).
 
 
-init([NicName]) ->
-    %% io:format("in nic_in NicName: ~w ~n",[NicName]),
-    %% register(lchread, spawn_link(nic_in, nic_in, [NicName])),
-    spawn_link(nic_in, nic_in, [NicName]),
+
+init([NameIn]) ->
+    Name = list_to_atom(atom_to_list(NameIn) ++ "read"),
+    register(Name, spawn_link(nic_in, nic_in, [Name])),
     {ok, null}.
 
 
@@ -39,9 +39,8 @@ nic_in(NicName) ->
     nic_in(NicName).
 
 
-start_link(NicName) ->
-    %% gen_server:start_link({local, lchgen}, ?MODULE, [NicName], []).
-    gen_server:start_link(?MODULE, [NicName], []).
+start_link(NameIn) ->
+    gen_server:start_link({local, NameIn}, ?MODULE, [NameIn], []).
 
 
 handle_cast(_Request, _State) ->

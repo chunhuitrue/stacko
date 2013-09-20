@@ -13,7 +13,7 @@
 %% limitations under the License.
 
 
--module(nic_in).
+-module(nic_out).
 
 -behaviour(gen_server).
 -export([init/1]).
@@ -24,27 +24,18 @@
 -export([terminate/2]).
 -export([code_change/3]).
 
--export([nic_in/1]).
 
 
-init([NicName]) ->
-    %% io:format("in nic_in NicName: ~w ~n",[NicName]),
-    %% register(lchread, spawn_link(nic_in, nic_in, [NicName])),
-    spawn_link(nic_in, nic_in, [NicName]),
+init([]) ->
     {ok, null}.
 
 
-nic_in(NicName) ->
-    timer:sleep(1000),
-    nic_in(NicName).
-
-
 start_link(NicName) ->
-    %% gen_server:start_link({local, lchgen}, ?MODULE, [NicName], []).
-    gen_server:start_link(?MODULE, [NicName], []).
+    gen_server:start_link({local, NicName}, ?MODULE, [], []).
 
 
-handle_cast(_Request, _State) ->
+handle_cast(Packet, _State) ->
+    Packet,
     {noreply, null}.
 
 

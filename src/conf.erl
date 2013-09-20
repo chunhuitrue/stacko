@@ -69,5 +69,8 @@ test_conf() ->
     Dispatcher_num = 3,
     l23_sup:start_dispatcher(Dispatcher_num - 1),
 
-    NicName = p2p1,
-    l23_sup:start_nic(NicName).
+    NicName1 = p2p1,
+    l23_sup:start_nic(NicName1),
+    NicName2 = p2p7,
+    l23_sup:start_nic(NicName2).
+
