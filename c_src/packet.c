@@ -28,6 +28,30 @@
 #include "erl_nif.h"
 #include "erl_driver.h"
 
+
+#define NICNAMELEN  64
+#define MAXNIC      8
+
+
+static int init();
+static int clean();
+static ERL_NIF_TERM open_nic(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]);
+static ERL_NIF_TERM close_nic(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]);
+static ERL_NIF_TERM read_nic(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]);
+static ERL_NIF_TERM write_nic(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]);
+
+
+typedef struct nic {
+        char nic_name[NICNAMELEN];
+        int  socket_fd;
+} nic_info;
+
+
+static nic_info nic[MAXNIC];
+
+
+
+
 static ERL_NIF_TERM read_clt(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]);
 static ERL_NIF_TERM write_clt(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]);
 static ERL_NIF_TERM read_srv(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]);
@@ -47,42 +71,111 @@ static char *srvside_nic = "p7p1";
 
 static ErlNifFunc nif_funcs[] =
 {
+        {"open_nic", 1, open_nic},
+        {"close_nic", 1, close_nic},
+        {"read_nic", 1, read_nic},
+        {"write_nic", 2, write_nic},
+
         {"read_clt", 0, read_clt},
         {"write_clt", 1, write_clt},
         {"read_srv", 0, read_srv},
         {"write_srv", 1, write_srv},
 };
 
+
 static int load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM load_info)
 {
-        if (init_socket() != 0) {
+        if (init() != 0) {
                 return -1;
         }
 
         return 0;
 }
+
 
 static int upgrade(ErlNifEnv *env, void **priv_data, void **old_priv_data, 
                    ERL_NIF_TERM load_info)
 {
-        if (clean_socket() != 0) {
+        if (clean() != 0) {
                 return -1;
         }
-        if (init_socket() != 0) {
+        if (init() != 0) {
                 return -1;
         }
 
         return 0;
 }
 
+
 static void unload(ErlNifEnv *env, void *priv_data)
 {
-        clean_socket();
+        clean();
 
         return;
 }
 
+
 ERL_NIF_INIT(packet, nif_funcs, &load, NULL, &upgrade, &unload);
+
+
+static int init()
+{
+        int i;
+
+        for (i = 0; i < MAXNIC; i++) {
+                nic[i].socket_fd = -1;
+        }
+
+        return 0;
+}
+
+
+static int clean()
+{
+        return 0;
+}
+
+
+static ERL_NIF_TERM open_nic(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
+{
+        return read_socket(env, argc, argv, cltside_socket);
+}
+
+
+static ERL_NIF_TERM close_nic(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
+{
+        int  i;
+        char name[NICNAMELEN];
+
+        bzero(name, sizeof(name));
+        enif_get_atom(env, argv[0], name, sizeof(name), ERL_NIF_LATIN1);
+
+        for (i = 0; i < MAXNIC; i++) {
+                if (strcmp(name, nic[i].nic_name) == 0) {
+                        close(nic[i].socket_fd);
+                        return enif_make_atom(env, "ok");
+                }
+        }
+
+        return enif_make_tuple2(env, enif_make_atom(env, "error"), 
+                                enif_make_atom(env, "name_error"));
+}
+
+
+static ERL_NIF_TERM read_nic(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
+{
+        return read_socket(env, argc, argv, cltside_socket);
+}
+
+
+static ERL_NIF_TERM write_nic(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
+{
+        return read_socket(env, argc, argv, cltside_socket);
+}
+
+
+
+
 
 static ERL_NIF_TERM read_clt(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
