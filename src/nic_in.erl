@@ -25,6 +25,7 @@
 -export([code_change/3]).
 
 -export([nic_in/2]).
+-export([test/1]).
 
 
 init([NameIn, Socket, DispatcherNum]) ->
@@ -35,23 +36,33 @@ init([NameIn, Socket, DispatcherNum]) ->
 
 nic_in(Socket, DispatcherNum) ->
     nic_in(Socket, DispatcherNum, DispatcherNum - 1).
-
-
 nic_in(Socket, DispatcherNum, Acc) when Acc >= 0 ->
     case packet:read_nic(Socket) of
         {error, _} ->
-            %% io:format("in read, read error!~n",[]),
-            nic_in(Socket, DispatcherNum, Acc - 1);
+            %% io:format("~w in read, error!~n",[self()]);
+            ok;
         Packet ->
-            %% io:format("in read, read packet!~n",[]),
+            %% io:format("~w in read, ok!~n",[self()]),
             timer:sleep(1),
             Name = list_to_atom(atom_to_list(dispatcher) ++ integer_to_list(Acc)),
-            dispatcher:to_dispatcher(Name, Packet),
-            nic_in(Socket, DispatcherNum, Acc - 1)
-    end;
-
+            dispatcher:to_dispatcher(Name, Packet)
+    end,
+    nic_in(Socket, DispatcherNum, Acc - 1);
 nic_in(Socket, DispatcherNum, Acc) when Acc < 0 ->
     nic_in(Socket, DispatcherNum, DispatcherNum - 1).
+
+
+test(N) ->
+    x_read(packet:open_nic(p2p1), N).
+
+
+x_read(Socket, Num) when Num >= 0 ->
+    packet:read_nic(Socket),
+    %% io:format("~w resd and to!~n",[self()]),
+    dispatcher:to_dispatcher(dispatcher0, ok),
+    x_read(Socket, Num - 1);
+x_read(_Socket, Num) when Num < 0 ->
+    ok.
 
 
 start_link(NameIn, Socket, DispatcherNum) ->
