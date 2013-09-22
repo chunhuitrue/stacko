@@ -38,12 +38,11 @@ nic_in(Socket, DispatcherNum) ->
     nic_in(Socket, DispatcherNum, DispatcherNum - 1).
 nic_in(Socket, DispatcherNum, Acc) when Acc >= 0 ->
     case packet:read_nic(Socket) of
-        {error, _} ->
-            %% io:format("~w in read, error!~n",[self()]);
+        {error, eagain} ->
+            timer:sleep(5);
+        {error, _Reason} ->
             ok;
         Packet ->
-            %% io:format("~w in read, ok!~n",[self()]),
-            timer:sleep(1),
             Name = list_to_atom(atom_to_list(dispatcher) ++ integer_to_list(Acc)),
             dispatcher:to_dispatcher(Name, Packet)
     end,

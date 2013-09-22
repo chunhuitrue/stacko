@@ -24,6 +24,7 @@
 #include <string.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <errno.h>
 #include "erl_nif.h"
 #include "erl_driver.h"
@@ -46,7 +47,7 @@ static int          bind_socket(int sd, char *nic);
 
 typedef struct nic {
         char nic_name[NICNAMELEN];
-        int  socket_fd;
+        int  sockfd;
 } nic_info;
 
 
@@ -118,6 +119,8 @@ static int clean()
 static ERL_NIF_TERM open_nic(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
         int  i;
+        int  val;
+        int  sockfd;
         int  index = -1;
         char name[NICNAMELEN];
 
@@ -132,7 +135,7 @@ static ERL_NIF_TERM open_nic(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]
         }
 
         for (i = 0; i < MAXNIC; i++) {
-                if (nic[i].socket_fd == -1) {
+                if (nic[i].sockfd == -1) {
                         index = i;
                         break;
                 }
@@ -143,15 +146,19 @@ static ERL_NIF_TERM open_nic(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]
                                         enif_make_atom(env, "too_many"));
         }
 
-        nic[index].socket_fd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
+        sockfd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
+        val = fcntl(sockfd, F_GETFL, 0);
+        fcntl(sockfd, F_SETFL, val | O_NONBLOCK);
+
+        nic[index].sockfd = sockfd;
         strncpy(nic[index].nic_name, name, sizeof(nic[index].nic_name));
 
-        if (nic[index].socket_fd == -1) {
+        if (nic[index].sockfd == -1) {
                 return enif_make_tuple2(env, 
                                         enif_make_atom(env, "error"), 
                                         enif_make_atom(env, "socket"));
         }
-        if ((bind_socket(nic[index].socket_fd, nic[index].nic_name)) == -1) {
+        if ((bind_socket(nic[index].sockfd, nic[index].nic_name)) == -1) {
                 return enif_make_tuple2(env, 
                                         enif_make_atom(env, "error"), 
                                         enif_make_atom(env, "bind"));
@@ -170,7 +177,7 @@ static ERL_NIF_TERM close_nic(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[
         enif_get_atom(env, argv[0], name, sizeof(name), ERL_NIF_LATIN1);
         for (i = 0; i < MAXNIC; i++) {
                 if (strcmp(name, nic[i].nic_name) == 0) {
-                        close(nic[i].socket_fd);
+                        close(nic[i].sockfd);
                         clean_nic_info(i);
                         return enif_make_atom(env, "ok");
                 }
@@ -202,7 +209,7 @@ static ERL_NIF_TERM read_nic(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]
                                         enif_make_atom(env, "alloc"));
         }
 
-        if ((ret_size = read(nic[index].socket_fd, buf.data, buf.size)) == -1) {
+        if ((ret_size = read(nic[index].sockfd, buf.data, buf.size)) == -1) {
                 err = errno;
                 enif_release_binary(&buf);
                 return enif_make_tuple2(env, 
@@ -229,7 +236,7 @@ static ERL_NIF_TERM write_nic(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[
                 return enif_make_badarg(env);
         }
 
-        if (write(nic[index].socket_fd, buf.data, buf.size) == -1) {
+        if (write(nic[index].sockfd, buf.data, buf.size) == -1) {
                 return enif_make_tuple2(env, enif_make_atom(env, "error"), 
                                         enif_make_atom(env, erl_errno_id(errno)));
                 
@@ -242,7 +249,7 @@ static ERL_NIF_TERM write_nic(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[
 static int clean_nic_info(int i)
 {
         bzero(nic[i].nic_name, sizeof(nic[i].nic_name));
-        nic[i].socket_fd = -1;
+        nic[i].sockfd = -1;
 
         return 0;
 }

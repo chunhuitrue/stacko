@@ -35,7 +35,9 @@ start_link(NicName, Socket) ->
 
 
 handle_cast(Packet, Socket) ->
-    Packet,
+    %% 需要处理非阻塞写当前没有buffer的错误，需要等待和再次尝试
+    %% 只能在这里等待，不能再 .c 中等待，否则阻塞。
+    Packet,                                    
     {noreply, Socket}.
 
 
