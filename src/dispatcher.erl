@@ -42,7 +42,7 @@ to_dispatcher(Name, Packet) ->
 
 handle_cast(Packet, Name) ->
     %% timer:sleep(500),
-    io:format("~w get a packet!~n",[Name]),
+    %% io:format("~w get a packet!~n",[Name]),
     Packet,
     {noreply, Name}.
 

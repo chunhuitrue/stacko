@@ -20,8 +20,10 @@
 
 -export([start_link/0]).
 -export([init/1]).
+
 -export([start_dispatcher/1]).
 -export([start_nic/2]).
+-export([stop_nic/1]).
 
 
 start_link() ->
@@ -52,7 +54,7 @@ start_dispatcher(N) ->
 start_nic(NicName, DispatcherNum) ->
     Socket = packet:open_nic(NicName),
 
-    NameIn = list_to_atom(atom_to_list(NicName) ++ "ingen"),
+    NameIn = name_in(NicName),
     InSpec = {NameIn,                                                % id
               {nic_in, start_link, [NameIn, Socket, DispatcherNum]}, % {Module, Function, Arguments}
               permanent,                                             % Restart
@@ -68,3 +70,16 @@ start_nic(NicName, DispatcherNum) ->
                worker,                                   % Type
                [nic_out]},                               % ModuleList
     supervisor:start_child(l23_sup, OutSpec).
+
+
+stop_nic(NicName) ->
+    NameIn = name_in(NicName),
+    supervisor:terminate_child(l23_sup, NameIn),
+    supervisor:delete_child(l23_sup, NameIn),
+
+    supervisor:terminate_child(l23_sup, NicName),
+    supervisor:delete_child(l23_sup, NicName).
+
+
+name_in(NicName) ->
+    list_to_atom(atom_to_list(NicName) ++ "ingen").
