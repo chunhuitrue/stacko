@@ -52,7 +52,7 @@ start_dispatcher(N) ->
 
 
 start_nic(NicName, DispatcherNum) ->
-    Socket = packet:open_nic(NicName),
+    Socket = nif:open_nic(NicName),
 
     NameIn = name_in(NicName),
     InSpec = {NameIn,                                                % id

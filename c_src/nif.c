@@ -95,7 +95,7 @@ static void unload(ErlNifEnv *env, void *priv_data)
 }
 
 
-ERL_NIF_INIT(packet, nif_funcs, &load, NULL, &upgrade, &unload);
+ERL_NIF_INIT(nif, nif_funcs, &load, NULL, &upgrade, &unload);
 
 
 static int init()

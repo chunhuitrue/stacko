@@ -14,7 +14,7 @@
 
 
 
--module(packet).
+-module(nif).
 
 -export([open_nic/1]).
 -export([close_nic/1]).

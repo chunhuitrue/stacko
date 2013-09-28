@@ -37,7 +37,7 @@ init([NameIn, Socket, DispatcherNum]) ->
 nic_in(Socket, DispatcherNum) ->
     nic_in(Socket, DispatcherNum, DispatcherNum - 1).
 nic_in(Socket, DispatcherNum, Acc) when Acc >= 0 ->
-    case packet:read_nic(Socket) of
+    case nif:read_nic(Socket) of
         {error, eagain} ->
             timer:sleep(5);
         {error, _Reason} ->
@@ -52,11 +52,11 @@ nic_in(Socket, DispatcherNum, Acc) when Acc < 0 ->
 
 
 test(N) ->
-    x_read(packet:open_nic(p2p1), N).
+    x_read(nif:open_nic(p2p1), N).
 
 
 x_read(Socket, Num) when Num >= 0 ->
-    packet:read_nic(Socket),
+    nif:read_nic(Socket),
     %% io:format("~w resd and to!~n",[self()]),
     dispatcher:to_dispatcher(dispatcher0, ok),
     x_read(Socket, Num - 1);
