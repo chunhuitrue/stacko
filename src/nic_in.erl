@@ -25,43 +25,12 @@
 -export([code_change/3]).
 
 -export([nic_in/2]).
--export([test/1]).
 
 
 init([NameIn, Socket, DispatcherNum]) ->
     Name = list_to_atom(atom_to_list(NameIn) ++ "read"),
     register(Name, spawn_link(nic_in, nic_in, [Socket, DispatcherNum])),
     {ok, null}.
-
-
-nic_in(Socket, DispatcherNum) ->
-    nic_in(Socket, DispatcherNum, DispatcherNum - 1).
-nic_in(Socket, DispatcherNum, Acc) when Acc >= 0 ->
-    case nif:read_nic(Socket) of
-        {error, eagain} ->
-            timer:sleep(5);
-        {error, _Reason} ->
-            ok;
-        Packet ->
-            Name = list_to_atom(atom_to_list(dispatcher) ++ integer_to_list(Acc)),
-            dispatcher:to_dispatcher(Name, Packet)
-    end,
-    nic_in(Socket, DispatcherNum, Acc - 1);
-nic_in(Socket, DispatcherNum, Acc) when Acc < 0 ->
-    nic_in(Socket, DispatcherNum, DispatcherNum - 1).
-
-
-test(N) ->
-    x_read(nif:open_nic(p2p1), N).
-
-
-x_read(Socket, Num) when Num >= 0 ->
-    nif:read_nic(Socket),
-    %% io:format("~w resd and to!~n",[self()]),
-    dispatcher:to_dispatcher(dispatcher0, ok),
-    x_read(Socket, Num - 1);
-x_read(_Socket, Num) when Num < 0 ->
-    ok.
 
 
 start_link(NameIn, Socket, DispatcherNum) ->
@@ -86,3 +55,22 @@ terminate(_Reason, _State) ->
 
 code_change(_Oldv, _State, _Extra) ->
     {ok, null}.
+
+
+nic_in(Socket, DispatcherNum) ->
+    nic_in(Socket, DispatcherNum, DispatcherNum - 1).
+nic_in(Socket, DispatcherNum, Acc) when Acc >= 0 ->
+    case nif:read_nic(Socket) of
+        {error, eagain} ->
+            timer:sleep(5);
+        {error, _Reason} ->
+            ok;
+        Res ->
+            DispName = list_to_atom(atom_to_list(dispatcher) ++ integer_to_list(Acc)),
+            dispatcher:to_dispatcher(DispName, Res)
+    end,
+    nic_in(Socket, DispatcherNum, Acc - 1);
+nic_in(Socket, DispatcherNum, Acc) when Acc < 0 ->
+    nic_in(Socket, DispatcherNum, DispatcherNum - 1).
+
+

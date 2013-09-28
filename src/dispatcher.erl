@@ -35,16 +35,16 @@ start_link(Name) ->
     gen_server:start_link({local, Name}, ?MODULE, [Name], []).
 
 
-to_dispatcher(Name, Packet) ->
-    %% io:format("to_dispatcher!~n"),
-    gen_server:cast(Name, Packet).
+to_dispatcher(DispName, Res) ->
+    gen_server:cast(DispName, Res).
 
 
-handle_cast(Packet, Name) ->
+handle_cast({Nic, Packet}, State_Name) ->
     %% timer:sleep(500),
-    %% io:format("~w get a packet!~n",[Name]),
+    io:format("~w get a packet!~n",[State_Name]),
     Packet,
-    {noreply, Name}.
+    Nic,
+    {noreply, State_Name}.
 
 
 handle_call(_Request, _Rrom, State) ->

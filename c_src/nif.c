@@ -32,7 +32,7 @@
 
 #define NICNAMELEN 64
 #define MAXNIC     8
-#define MTU        1500
+#define MAXFRAM    1518
 
 
 static int          init();
@@ -203,7 +203,7 @@ static ERL_NIF_TERM read_nic(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]
                                         enif_make_atom(env, "arg"));
         }
 
-        if (!enif_alloc_binary(MTU, &buf)) {
+        if (!enif_alloc_binary(MAXFRAM, &buf)) {
                 return enif_make_tuple2(env, 
                                         enif_make_atom(env, "error"), 
                                         enif_make_atom(env, "alloc"));
@@ -216,7 +216,10 @@ static ERL_NIF_TERM read_nic(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]
                                         enif_make_atom(env, "error"), 
                                         enif_make_atom(env, erl_errno_id(err)));
         }
-        return enif_make_binary(env, &buf);
+        
+        return enif_make_tuple2(env,
+                                enif_make_atom(env, nic[index].nic_name),
+                                enif_make_binary(env, &buf));
 }
 
 
