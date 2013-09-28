@@ -28,17 +28,17 @@ start_link() ->
 
 init([]) ->
     SuperSpec = {one_for_one, 5, 5},
-    %% l23 sup
-    L23Spec = {l23_sup,                       % id
-               {l23_sup, start_link, []},     % {Module, Function, Arguments}
+    %% ip sup
+    IpSpec = {ip_sup,                       % id
+               {ip_sup, start_link, []},     % {Module, Function, Arguments}
                permanent,                     % Restart
                brutal_kill,                   % Shutdown
                supervisor,                    % Type
-               [l23_sup]},                    % ModuleList
+               [ip_sup]},                    % ModuleList
     ConfSpec = {conf,                          % id
                 {conf, start_link, []},        % {Module, Function, Arguments}
                 permanent,                     % Restart
                 brutal_kill,                   % Shutdown
                 worker,                        % Type
                 [conf]},                       % ModuleList
-    {ok, {SuperSpec, [L23Spec, ConfSpec]}}.
+    {ok, {SuperSpec, [IpSpec, ConfSpec]}}.
