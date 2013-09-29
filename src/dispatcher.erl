@@ -35,28 +35,36 @@ start_link(Name) ->
     gen_server:start_link({local, Name}, ?MODULE, [Name], []).
 
 
-handle_cast({Nic, Packet}, State_Name) ->
-    %% timer:sleep(500),
-    %% io:format("~w get a packet!~n",[State_Name]),
-    Packet,
-    Nic,
-    {noreply, State_Name}.
+handle_cast({Nic, Packet}, StateName) ->
+    if bit_size(Packet) >= 112 ->
+            <<_Dmac:48, _Smac:48, Type:16/integer-unsigned-big, _Rest/binary>> = Packet,
+            case Type  of
+                16#0806 ->
+                    arp:to_arp({Nic, Packet});
+                16#0800 ->
+                    %% io:format("get a ip  packet!~n");
+                    ok;
+                _ ->
+                    ok
+            end
+    end,
+    {noreply, StateName}.
 
 
-handle_call(_Request, _Rrom, State) ->
-    {noreply, State}.
+handle_call(_Request, _Rrom, StateName) ->
+    {noreply, StateName}.
 
 
-handle_info(_Request, State) ->
-    {noreply, State}.
+handle_info(_Request, StateName) ->
+    {noreply, StateName}.
 
 
 terminate(_Reason, _STate) ->
     ok.
 
 
-code_change(_Oldv, State, _Extra) ->
-    {ok, State}.
+code_change(_Oldv, StateName, _Extra) ->
+    {ok, StateName}.
 
 
 to_dispatcher(DispName, Res) ->
