@@ -88,4 +88,4 @@ stop_nic(NicName) ->
 
 
 name_in(NicName) ->
-    list_to_atom(atom_to_list(NicName) ++ "ingen").
+    list_to_atom(atom_to_list(NicName) ++ "_gen").

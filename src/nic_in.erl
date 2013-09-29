@@ -28,7 +28,7 @@
 
 
 init([NameIn, Socket, DispatcherNum]) ->
-    Name = list_to_atom(atom_to_list(NameIn) ++ "read"),
+    Name = list_to_atom(atom_to_list(NameIn) ++ "_read"),
     register(Name, spawn_link(nic_in, nic_in, [Socket, DispatcherNum])),
     {ok, null}.
 
