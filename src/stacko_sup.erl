@@ -27,14 +27,16 @@ start_link() ->
     
 
 init([]) ->
+    %% init tables
+    tables:create_ip_table(),
+
     SuperSpec = {one_for_one, 5, 5},
-    %% ip sup
-    IpSpec = {ip_sup,                       % id
-               {ip_sup, start_link, []},     % {Module, Function, Arguments}
-               permanent,                     % Restart
-               brutal_kill,                   % Shutdown
-               supervisor,                    % Type
-               [ip_sup]},                    % ModuleList
+    IpSpec = {ip_sup,                    % id
+               {ip_sup, start_link, []}, % {Module, Function, Arguments}
+               permanent,                % Restart
+               brutal_kill,              % Shutdown
+               supervisor,               % Type
+               [ip_sup]},                % ModuleList
     ConfSpec = {conf,                          % id
                 {conf, start_link, []},        % {Module, Function, Arguments}
                 permanent,                     % Restart
