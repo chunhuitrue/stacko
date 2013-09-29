@@ -39,9 +39,9 @@ handle_cast({Nic, Packet}, StateName) ->
     if bit_size(Packet) >= 112 ->
             <<_Dmac:48, _Smac:48, Type:16/integer-unsigned-big, _Rest/binary>> = Packet,
             case Type  of
-                16#0806 ->
+                16#0806 ->                      % arp
                     arp:to_arp({Nic, Packet});
-                16#0800 ->
+                16#0800 ->                      % ip
                     %% io:format("get a ip  packet!~n");
                     ok;
                 _ ->
