@@ -74,8 +74,8 @@ test_conf() ->
     NicName2 = p7p1,
     ip_sup:start_nic(NicName2, Dispatcher_num),
     
-    tables:insert_ip_table({192, 168, 1, 12}, {255, 255, 255, 0}, p2p1),
-    tables:insert_ip_table({10, 10, 1, 12}, {255, 255, 255, 0}, p7p1).
+    tables:insert_ip({192, 168, 1, 12}, {255, 255, 255, 0}, p2p1),
+    tables:insert_ip({10, 10, 1, 12}, {255, 255, 255, 0}, p7p1).
 
 
     

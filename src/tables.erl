@@ -15,24 +15,48 @@
 
 -module(tables).
 
--export([create_ip_table/0]).
--export([lookup_ip_table/1]).
--export([insert_ip_table/3]).
--export([del_ip_table/1]).
+-export([create_ip/0]).
+-export([lookup_ip/1]).
+-export([insert_ip/3]).
+-export([del_ip/1]).
+
+-export([create_arp/0]).
+-export([lookup_arp/1]).
+-export([insert_arp/4]).
+-export([del_arp/1]).
 
 
 %% ip table
-create_ip_table() ->
+%% ip mask Iface
+create_ip() ->
     ets:new(ip_table, [set, public, named_table, public]).
 
 
-lookup_ip_table(Ip) ->
+lookup_ip(Ip) ->
     ets:lookup(ip_table, Ip).
 
 
-insert_ip_table(Ip, Mask, Nic) ->
-    ets:insert(ip_table, [{Ip, Mask, Nic}]).
+insert_ip(Ip, Mask, Iface) ->
+    ets:insert(ip_table, [{Ip, Mask, Iface}]).
 
 
-del_ip_table(Ip) ->
+del_ip(Ip) ->
     ets:delete(ip_table, Ip).
+
+
+%% arp table
+%% ip HwType Mac Iface
+create_arp() ->
+    ets:new(arp_table, [set, public, named_table, public]).
+
+
+lookup_arp(Ip) ->
+    ets:lookup(ip_table, Ip).
+
+
+insert_arp(Ip, HwType, Mac, Iface) ->
+    ets:insert(arp_table, [{Ip, HwType, Mac, Iface}]).
+
+
+del_arp(Ip) ->
+    ets:delete(arp_table, Ip).
