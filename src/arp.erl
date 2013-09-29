@@ -86,3 +86,5 @@ travers_ip(First) ->
             io:format("one ip.~n"),
             travers_ip(ets:next(ip_table, First))
     end.
+
+
