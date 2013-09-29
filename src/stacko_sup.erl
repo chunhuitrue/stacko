@@ -23,13 +23,13 @@
 
 
 start_link() ->
-    supervisor:start_link({local, ?MODULE}, ?MODULE, []).
+    {ok, Pid} = supervisor:start_link({local, ?MODULE}, ?MODULE, []),
+    %% init tables
+    tables:create_ip_table(),
+    {ok, Pid}.
     
 
 init([]) ->
-    %% init tables
-    tables:create_ip_table(),
-
     SuperSpec = {one_for_one, 5, 5},
     IpSpec = {ip_sup,                    % id
                {ip_sup, start_link, []}, % {Module, Function, Arguments}
