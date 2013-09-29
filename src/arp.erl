@@ -28,17 +28,17 @@
 
 
 init([]) ->
-    {ok, null}.
+    {ok, null, 0}.
 
 
 start_link(Name) ->
     gen_server:start_link({local, Name}, ?MODULE, [], []).
 
 
-handle_cast({Nic, Packet}, _State) ->
+handle_cast({Iface, Packet}, _State) ->
     io:format("arp get a packet!~n"),
     Packet,
-    Nic,
+    Iface,
     {noreply, null}.
 
 
@@ -46,7 +46,8 @@ handle_call(_Request, _Rrom, _State) ->
     {noreply, null}.
 
 
-handle_info(_Request, _State) ->
+handle_info(timeout, _State) ->
+    io:format("arp start so send ACD.~n"),
     {noreply, null}.
 
 
