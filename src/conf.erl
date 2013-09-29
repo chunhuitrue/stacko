@@ -33,14 +33,12 @@ init([]) ->
 
 
 start_link() ->
-    {ok, Pid} = gen_server:start_link({local, ?MODULE}, ?MODULE, [], []),
-    test_conf(),
-    {ok, Pid}.
-
+    gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
+    
 
 handle_info(watch_conf, _State) ->
     load_conf(),
-    erlang:send_after(?LOOP_TIME, self(), watch_conf),
+    %% erlang:send_after(?LOOP_TIME, self(), watch_conf),
     {noreply, null}.
 
 
@@ -61,10 +59,6 @@ code_change(_Oldv, _State, _Extra) ->
 
 
 load_conf() ->
-    %% io:format("in watch conf file!~n",[]),
-    ok.
-
-test_conf() ->
     %% 10 dispatchers
     Dispatcher_num = 3,
     ip_sup:start_dispatcher(Dispatcher_num - 1),
@@ -75,7 +69,7 @@ test_conf() ->
     ip_sup:start_nic(NicName2, Dispatcher_num),
     
     tables:insert_ip({192, 168, 1, 12}, {255, 255, 255, 0}, p2p1),
-    tables:insert_ip({10, 10, 1, 12}, {255, 255, 255, 0}, p7p1).
+    tables:insert_ip({10, 10, 1, 12}, {255, 255, 255, 0}, p7p1),
+    arp:acd().
 
 
-    

@@ -25,10 +25,11 @@
 -export([code_change/3]).
 
 -export([to_arp/1]).
+-export([acd/0]).
 
 
 init([]) ->
-    {ok, null, 0}.
+    {ok, null}.
 
 
 start_link(Name) ->
@@ -36,9 +37,12 @@ start_link(Name) ->
 
 
 handle_cast({Iface, Packet}, _State) ->
-    io:format("arp get a packet!~n"),
+    %% io:format("arp get a packet!~n"),
     Packet,
     Iface,
+    {noreply, null};
+handle_cast(acd, _State) ->
+    travers_ip(ets:first(ip_table)),
     {noreply, null}.
 
 
@@ -46,8 +50,7 @@ handle_call(_Request, _Rrom, _State) ->
     {noreply, null}.
 
 
-handle_info(timeout, _State) ->
-    io:format("arp start so send ACD.~n"),
+handle_info(_Request, _State) ->
     {noreply, null}.
 
 
@@ -61,3 +64,25 @@ code_change(_Oldv, _State, _Extra) ->
 
 to_arp(Res) ->
     gen_server:cast(arp, Res).
+
+
+acd() ->
+    case is_pid(whereis(arp))  of 
+        true ->
+            gen_server:cast(arp, acd);
+        _ ->
+            timer:sleep(10),
+            acd()
+    end.
+
+
+travers_ip(First) ->
+    case First of
+        '$end_of_table' ->
+            io:format("end_of_table.~n"),
+            ok;
+        _ ->
+            tables:lookup_ip(First),
+            io:format("one ip.~n"),
+            travers_ip(ets:next(ip_table, First))
+    end.

@@ -36,8 +36,8 @@ lookup_ip(Ip) ->
     ets:lookup(ip_table, Ip).
 
 
-insert_ip(Ip, Mask, Iface) ->
-    ets:insert(ip_table, [{Ip, Mask, Iface}]).
+insert_ip(Ip, Mask, Nic) ->
+    ets:insert(ip_table, [{Ip, Mask, Nic}]).
 
 
 del_ip(Ip) ->
@@ -45,7 +45,7 @@ del_ip(Ip) ->
 
 
 %% arp table
-%% ip HwType Mac Iface
+%% ip HwType Mac Nic
 create_arp() ->
     ets:new(arp_table, [set, public, named_table, public]).
 
@@ -54,8 +54,8 @@ lookup_arp(Ip) ->
     ets:lookup(ip_table, Ip).
 
 
-insert_arp(Ip, HwType, Mac, Iface) ->
-    ets:insert(arp_table, [{Ip, HwType, Mac, Iface}]).
+insert_arp(Ip, HwType, Mac, Nic) ->
+    ets:insert(arp_table, [{Ip, HwType, Mac, Nic}]).
 
 
 del_arp(Ip) ->
