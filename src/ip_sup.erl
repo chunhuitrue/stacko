@@ -31,14 +31,14 @@ start_link() ->
 
 
 init([]) ->
-    %% ArpSpec = {arp,                      % id
-    %%            {arp, start_link, [arp]}, % {Module, Function, Arguments}
-    %%            permanent,                % Restart
-    %%            brutal_kill,              % Shutdown
-    %%            worker,                   % Type
-    %%            [arp]},                   % ModuleList
+    ArpSpec = {arp,                      % id
+               {arp, start_link, [arp]}, % {Module, Function, Arguments}
+               permanent,                % Restart
+               brutal_kill,              % Shutdown
+               worker,                   % Type
+               [arp]},                   % ModuleList
     SuperSpec = {one_for_one, 5, 5},
-    {ok, {SuperSpec, []}}.
+    {ok, {SuperSpec, [ArpSpec]}}.
 
 
 start_dispatcher(N) ->
