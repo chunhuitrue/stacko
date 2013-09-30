@@ -19,7 +19,12 @@
 
 
 mac_to_binary(Mac) ->
-    mac_to_binary(Mac, <<>>).
+    case length(Mac) of
+        6 ->
+            mac_to_binary(Mac, <<>>);
+        _ ->
+            badarg
+    end.
 mac_to_binary([], Acc) ->
     Acc;
 mac_to_binary([A | Tail], Acc) ->

@@ -26,6 +26,7 @@
 
 -export([to_arp/1]).
 -export([acd/0]).
+-export([gratuitous/1]).
 
 
 init([]) ->
@@ -83,15 +84,29 @@ gratuitous(First) ->
             ok;
         _ ->
             io:format("one ip.~n"),
-            %% [{Ip, _Mask, Nic, Mac}] = tables:lookup_ip(First),
+            DstMac = stacko:mac_to_binary([ff, ff, ff, ff, ff, ff]),
 
-            %% DstMac = <<16#ff:8, 16#ff:8, 16#ff:8, 16#ff:8, 16#ff:8, 16#ff:8, 16#ff:8, 16#ff:8>>,
+            [{Ip, _Mask, Nic, Mac}] = tables:lookup_ip(First),
+            SrcMac = stacko:mac_to_binary(Mac),
 
-            %% [A, B, C, D, E, F] = Mac,
-            %% SrcMac = <<16#A:8, 16#B:8, 16#C:8, 16#D:8, 16#E:8, 16#F:8>>,
+            Type = 16#0806,                    
+            HardType = 1,
+            ProtType = 16#0800,
+            HardSize = 6,
+            ProtSize = 4,
+            Op = 1,
+            SenderMac = SrcMac,
+            {A, B, C, D} = Ip,
+            SenderAddr = <<A:8, B:8, C:8, D:8>>,
+            TargetMac = stacko:mac_to_binary([0, 0, 0, 0, 0, 0]),
+            TargetAddr = SenderAddr,
+
+            Packet = <<DstMac/binary, SrcMac/binary, 
+                       Type:16, HardType:16, ProtType:16, HardSize:8, ProtSize:8, Op:16, 
+                       SenderMac/binary, SenderAddr/binary, 
+                       TargetMac/binary, TargetAddr/binary>>,
 
 
-            %% Packet = <<DstMac:48, SrcMac:48>>,
             gratuitous(ets:next(ip_table, First))
     end.
 
