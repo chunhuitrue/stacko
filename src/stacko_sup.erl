@@ -29,6 +29,7 @@ start_link() ->
 init([]) ->
     tables:create_ip(),
     tables:create_arp(),
+    tables:create_nic(),
 
     SuperSpec = {one_for_one, 5, 5},
     IpSpec = {ip_sup,                    % id

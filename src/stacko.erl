@@ -15,7 +15,23 @@
 
 -module(stacko).
 
+-export([nic_up/1]).
+-export([nic_down/1]).
 -export([mac_to_binary/1]).
+
+
+nic_up(NicName) ->
+    case nif:nic_up(NicName) of
+        {error, Resion} ->
+            {error, Resion};
+        {Index, MAC, HwType, MTU}  ->
+            tables:insert_nic(NicName, Index, MAC, HwType, MTU)
+    end.
+
+
+nic_down(NicName) ->
+    nif:nic_down(NicName),
+    tables:del_nic(NicName).
 
 
 mac_to_binary(Mac) ->

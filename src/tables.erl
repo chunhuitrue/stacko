@@ -17,7 +17,7 @@
 
 -export([create_nic/0]).
 -export([lookup_nic/1]).
--export([insert_nic/4]).
+-export([insert_nic/5]).
 -export([del_nic/1]).
 
 -export([create_arp/0]).
@@ -33,7 +33,7 @@
 
 
 %% nic tabe
-%% name index mac hwtype mtu ...
+%% name, Index, Mac, HwType, MTU
 create_nic() ->
     ets:new(nic_table, [set, public, named_table, public]).
     
@@ -42,8 +42,8 @@ lookup_nic(Name) ->
     ets:lookup(nic_table, Name).
 
 
-insert_nic(Name, Index, MAC, MTU) ->
-    ets:insert(nic_table, [{Name, Index, MAC, MTU}]).
+insert_nic(Name, Index, MAC, HwType, MTU) ->
+    ets:insert(nic_table, [{Name, Index, MAC, HwType, MTU}]).
 
 
 del_nic(Name) ->
