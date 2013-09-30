@@ -40,6 +40,7 @@ handle_cast(Packet, StateSocket) ->
     %% 需要处理非阻塞写当前没有buffer的错误，需要等待和再次尝试
     %% 只能在这里等待，不能再 .c 中等待，否则阻塞。
     Res = nif:write_nic(StateSocket, Packet),
+    io:format("send a packet, socket: ~w~n", [StateSocket]),
     io:format("send a packet, ret: ~w~n", [Res]),
 
     {noreply, StateSocket}.

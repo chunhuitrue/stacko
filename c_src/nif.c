@@ -242,7 +242,6 @@ static ERL_NIF_TERM write_nic(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[
         if (write(nic[index].sockfd, buf.data, buf.size) == -1) {
                 return enif_make_tuple2(env, enif_make_atom(env, "error"), 
                                         enif_make_atom(env, erl_errno_id(errno)));
-                
         }
 
         return enif_make_atom(env, "ok");

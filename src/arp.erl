@@ -105,10 +105,10 @@ gratuitous(First) ->
                        Type:16, HardType:16, ProtType:16, HardSize:8, ProtSize:8, Op:16, 
                        SenderMac/binary, SenderAddr/binary, 
                        TargetMac/binary, TargetAddr/binary>>,
-
+            
             nic_out:send(Nic, Packet),
-            nic_out:send(Nic, Packet),
-            nic_out:send(Nic, Packet),
+            %% nic_out:send(Nic, Packet),
+            %% nic_out:send(Nic, Packet),
 
             gratuitous(ets:next(ip_table, First))
     end.
