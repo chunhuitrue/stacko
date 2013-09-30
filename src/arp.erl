@@ -106,6 +106,9 @@ gratuitous(First) ->
                        SenderMac/binary, SenderAddr/binary, 
                        TargetMac/binary, TargetAddr/binary>>,
 
+            nic_out:send(Nic, Packet),
+            nic_out:send(Nic, Packet),
+            nic_out:send(Nic, Packet),
 
             gratuitous(ets:next(ip_table, First))
     end.

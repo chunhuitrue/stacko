@@ -24,6 +24,8 @@
 -export([terminate/2]).
 -export([code_change/3]).
 
+-export([send/2]).
+
 
 
 init([Socket]) ->
@@ -34,24 +36,30 @@ start_link(NicName, Socket) ->
     gen_server:start_link({local, NicName}, ?MODULE, [Socket], []).
 
 
-handle_cast(Packet, Socket) ->
+handle_cast(Packet, StateSocket) ->
     %% 需要处理非阻塞写当前没有buffer的错误，需要等待和再次尝试
     %% 只能在这里等待，不能再 .c 中等待，否则阻塞。
-    Packet,                                    
-    {noreply, Socket}.
+    Res = nif:write_nic(StateSocket, Packet),
+    io:format("send a packet, ret: ~w~n", [Res]),
+
+    {noreply, StateSocket}.
 
 
-handle_info(_Request, State) ->
-    {noreply, State}.
+handle_info(_Request, StateSocket) ->
+    {noreply, StateSocket}.
 
 
-handle_call(_Request, _Rrom, State) ->
-    {noreply, State}.
+handle_call(_Request, _Rrom, StateSocket) ->
+    {noreply, StateSocket}.
 
 
 terminate(_Reason, _State) ->
     ok.
 
 
-code_change(_Oldv, State, _Extra) ->
-    {ok, State}.
+code_change(_Oldv, StateSocket, _Extra) ->
+    {ok, StateSocket}.
+
+
+send(Nic, Packet) ->
+    gen_server:cast(Nic, Packet).
