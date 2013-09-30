@@ -25,6 +25,7 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <stdio.h>
 #include <errno.h>
 #include "erl_nif.h"
 #include "erl_driver.h"
@@ -44,11 +45,11 @@ static ERL_NIF_TERM nic_send(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]
 static int          clean_nic_info(int i);
 
 
-typedef struct nic {
+typedef struct _nic_info {
         char nic_name[NICNAMELEN];
         int  hw_type;
         int  mtu;
-        struct ifreq ifr
+        struct ifreq ifr;
 } nic_info;
 
 
@@ -122,12 +123,12 @@ static int clean()
 
 static ERL_NIF_TERM nic_up(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
-        int  i;
-        int  sd;
-        int  val;
-        int  index = -1;
-        char buf[6];
-        char name[NICNAMELEN];
+        int          i;
+        int          sd;
+        int          val;
+        int          index = -1;
+        char         name[NICNAMELEN];
+        ErlNifBinary buf   = {0};
 
         if (sockfd == -1) {
                 sockfd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
@@ -152,7 +153,7 @@ static ERL_NIF_TERM nic_up(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
         }
 
         for (i = 0; i < MAXNIC; i++) {
-                if (strlen(nic[].nic_name) == 0 ) {
+                if (strlen(nic[i].nic_name) == 0 ) {
                         index = i;
                         break;
                 }
@@ -171,7 +172,7 @@ static ERL_NIF_TERM nic_up(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
         }
         bzero(&(nic[index].ifr), sizeof(nic[index].ifr));
         snprintf(nic[index].ifr.ifr_name, sizeof(nic[index].ifr), "%s", name);
-        if (ioctl(sd, SIOCGIFHWADDR, &ifr) < 0) {
+        if (ioctl(sd, SIOCGIFHWADDR, &(nic[index].ifr)) < 0) {
                 return enif_make_tuple2(env, 
                                         enif_make_atom(env, "error"), 
                                         enif_make_atom(env, "hwaddr"));
@@ -180,12 +181,19 @@ static ERL_NIF_TERM nic_up(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
         nic[index].hw_type = 1; /* todo */
         close(sd);
         
-        memcpy(buf, nic[index].ifr.ifr_hwaddr.sa_data, 6);
-        return enif_make_tuple4(enf,
+        if (!enif_alloc_binary(MAXFRAM, &buf)) {
+                return enif_make_tuple2(env, 
+                                        enif_make_atom(env, "error"), 
+                                        enif_make_atom(env, "alloc"));
+        }
+        memcpy(buf.data, nic[index].ifr.ifr_hwaddr.sa_data, 6);
+        buf.size = 6;
+
+        return enif_make_tuple4(env,
                                 enif_make_int(env, index),
                                 enif_make_binary(env, &buf),
-                                enif_make_int(nic[index].hw_type),
-                                enif_make_int(nic[index].mtu));
+                                enif_make_int(env, nic[index].hw_type),
+                                enif_make_int(env, nic[index].mtu));
 }
 
 
@@ -243,55 +251,42 @@ static ERL_NIF_TERM nic_recv(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]
                                         enif_make_atom(env, erl_errno_id(err)));
         }
         
-        return enif_make_tuple2(env,
-                                enif_make_binary(env, &buf));
+        return enif_make_binary(env, &buf);
 }
 
 
 static ERL_NIF_TERM nic_send(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
-        int          index = -1;
-        ErlNifBinary buf   = {0};
+        int                index = -1;
+        int                ret;
+        ErlNifBinary       buf   = {0};
+        struct sockaddr_ll device;
 
         enif_get_int(env, argv[0], &index);
         if (index < 0) {
                 return enif_make_tuple2(env, 
                                         enif_make_atom(env, "error"), 
-                                        enif_make_atom(env, "arg"));
+                                        enif_make_atom(env, "badarg"));
         }
 
         if (!enif_inspect_binary(env, argv[1], &buf)) {
                 return enif_make_badarg(env);
         }
 
-        if (write(nic[index].sockfd, buf.data, buf.size) == -1) {
-                return enif_make_tuple2(env, enif_make_atom(env, "error"), 
-                                        enif_make_atom(env, erl_errno_id(errno)));
-        }
-
-        return enif_make_atom(env, "ok");
-}
-
-
-static ERL_NIF_TERM write_nic(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
-{
-        int          index = -1;
-        ErlNifBinary buf   = {0};
-
-        enif_get_int(env, argv[0], &index);
-        if (index < 0) {
+        if ((device.sll_ifindex = if_nametoindex(nic[index].nic_name)) == 0) {
                 return enif_make_tuple2(env, 
                                         enif_make_atom(env, "error"), 
-                                        enif_make_atom(env, "arg"));
+                                        enif_make_atom(env, "noifindex"));
         }
+        device.sll_family = AF_PACKET;
+        memcpy(device.sll_addr, nic[index].ifr.ifr_hwaddr.sa_data, 6);
+        device.sll_halen = htons(6);
 
-        if (!enif_inspect_binary(env, argv[1], &buf)) {
-                return enif_make_badarg(env);
-        }
-
-        if (write(nic[index].sockfd, buf.data, buf.size) == -1) {
+        if ((ret = sendto(sockfd, buf.data, buf.size, 0, 
+                          (struct sockaddr *)&device, sizeof(device))) <= 0) {
                 return enif_make_tuple2(env, enif_make_atom(env, "error"), 
                                         enif_make_atom(env, erl_errno_id(errno)));
+                
         }
 
         return enif_make_atom(env, "ok");
@@ -305,22 +300,3 @@ static int clean_nic_info(int i)
 
         return 0;
 }
-
-
-static int bind_socket(int sd, char *nic)
-{
-        struct ifreq ifr;
-
-        bzero(&ifr, sizeof(ifr));
-        strncpy((char *)ifr.ifr_name, nic, IFNAMSIZ); 
-        if ((ioctl(sd, SIOCGIFINDEX , &ifr)) < 0) { 
-                return -1;
-        }
-
-        if (setsockopt(sd, SOL_SOCKET, SO_BINDTODEVICE, &ifr, sizeof(ifr)) < 0) {
-                return -1;
-        }
-                
-        return 0;
-}
-

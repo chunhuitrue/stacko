@@ -16,10 +16,10 @@
 
 -module(nif).
 
--export([open_nic/1]).
--export([close_nic/1]).
--export([read_nic/1]).
--export([write_nic/2]).
+-export([nic_up/1]).
+-export([nic_down/1]).
+-export([nic_recv/0]).
+-export([nic_send/2]).
 
 -on_load(init/0).
 
@@ -40,18 +40,20 @@ init() ->
     erlang:load_nif(filename:join(PrivDir, "stacko_drv"), 0).
 
 
-open_nic(Name) when is_atom(Name) ->
+nic_up(Name) when is_atom(Name) ->
     ?nif_stub.
 
 
-close_nic(Name) when is_atom(Name) ->
+nic_down(Name) when is_atom(Name) ->
     ?nif_stub.
 
 
-read_nic(Index) when is_integer(Index) ->
+nic_recv() ->
     ?nif_stub.
 
 
-write_nic(Index, Packet) when is_integer(Index), 
-                              is_binary(Packet) ->
+nic_send(Index, Packet) when is_integer(Index),
+                             is_binary(Packet)->
     ?nif_stub.
+
+
