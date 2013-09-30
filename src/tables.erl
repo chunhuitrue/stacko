@@ -27,7 +27,7 @@
 
 
 %% ip table
-%% ip mask Iface
+%% ip mask Iface mac
 create_ip() ->
     ets:new(ip_table, [set, public, named_table, public]).
 
@@ -45,7 +45,7 @@ del_ip(Ip) ->
 
 
 %% arp table
-%% ip HwType Mac Nic
+%% ip HwType Mac Nic time
 create_arp() ->
     ets:new(arp_table, [set, public, named_table, public]).
 
