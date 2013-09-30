@@ -42,7 +42,7 @@ handle_cast({Iface, Packet}, _State) ->
     Iface,
     {noreply, null};
 handle_cast(acd, _State) ->
-    travers_ip(ets:first(ip_table)),
+    gratuitous(ets:first(ip_table)),
     {noreply, null}.
 
 
@@ -76,15 +76,23 @@ acd() ->
     end.
 
 
-travers_ip(First) ->
+gratuitous(First) ->
     case First of
         '$end_of_table' ->
             io:format("end_of_table.~n"),
             ok;
         _ ->
-            tables:lookup_ip(First),
             io:format("one ip.~n"),
-            travers_ip(ets:next(ip_table, First))
+            %% [{Ip, _Mask, Nic, Mac}] = tables:lookup_ip(First),
+
+            %% DstMac = <<16#ff:8, 16#ff:8, 16#ff:8, 16#ff:8, 16#ff:8, 16#ff:8, 16#ff:8, 16#ff:8>>,
+
+            %% [A, B, C, D, E, F] = Mac,
+            %% SrcMac = <<16#A:8, 16#B:8, 16#C:8, 16#D:8, 16#E:8, 16#F:8>>,
+
+
+            %% Packet = <<DstMac:48, SrcMac:48>>,
+            gratuitous(ets:next(ip_table, First))
     end.
 
 
