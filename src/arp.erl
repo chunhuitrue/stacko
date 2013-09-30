@@ -43,7 +43,7 @@ handle_cast({Iface, Packet}, _State) ->
     Iface,
     {noreply, null};
 handle_cast(acd, _State) ->
-    gratuitous(ets:first(ip_table)),
+    %% gratuitous(ets:first(ip_table)),
     {noreply, null}.
 
 

@@ -60,13 +60,13 @@ code_change(_Oldv, _State, _Extra) ->
 
 load_conf() ->
     %% 10 dispatchers
-    Dispatcher_num = 3,
+    Dispatcher_num = 1,
     ip_sup:start_dispatcher(Dispatcher_num - 1),
      
     NicName1 = p2p1,
     ip_sup:start_nic(NicName1, Dispatcher_num),
-    NicName2 = p7p1,
-    ip_sup:start_nic(NicName2, Dispatcher_num),
+    %% NicName2 = p7p1,
+    %% ip_sup:start_nic(NicName2, Dispatcher_num),
     
     tables:insert_ip({192, 168, 1, 12}, {255, 255, 255, 0}, p2p1, [08, 00, 27, fc, a2, 60]),
     tables:insert_ip({10, 10, 1, 12}, {255, 255, 255, 0}, p7p1, [08, 00, 27, 48, c5, c8]),
