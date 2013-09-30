@@ -15,15 +15,57 @@
 
 -module(tables).
 
--export([create_ip/0]).
--export([lookup_ip/1]).
--export([insert_ip/4]).
--export([del_ip/1]).
+-export([create_nic/0]).
+-export([lookup_nic/1]).
+-export([insert_nic/4]).
+-export([del_nic/1]).
 
 -export([create_arp/0]).
 -export([lookup_arp/1]).
 -export([insert_arp/4]).
 -export([del_arp/1]).
+
+-export([create_ip/0]).
+-export([lookup_ip/1]).
+-export([insert_ip/4]).
+-export([del_ip/1]).
+
+
+
+%% nic tabe
+%% name index mac hwtype mtu ...
+create_nic() ->
+    ets:new(nic_table, [set, public, named_table, public]).
+    
+
+lookup_nic(Name) ->
+    ets:lookup(nic_table, Name).
+
+
+insert_nic(Name, Index, MAC, MTU) ->
+    ets:insert(nic_table, [{Name, Index, MAC, MTU}]).
+
+
+del_nic(Name) ->
+    ets:delete(nic_table, Name).
+
+
+%% arp table
+%% ip HwType Mac Nic time
+create_arp() ->
+    ets:new(arp_table, [set, public, named_table, public]).
+
+
+lookup_arp(Ip) ->
+    ets:lookup(ip_table, Ip).
+
+
+insert_arp(Ip, HwType, Mac, Nic) ->
+    ets:insert(arp_table, [{Ip, HwType, Mac, Nic}]).
+
+
+del_arp(Ip) ->
+    ets:delete(arp_table, Ip).
 
 
 %% ip table
@@ -44,19 +86,3 @@ del_ip(Ip) ->
     ets:delete(ip_table, Ip).
 
 
-%% arp table
-%% ip HwType Mac Nic time
-create_arp() ->
-    ets:new(arp_table, [set, public, named_table, public]).
-
-
-lookup_arp(Ip) ->
-    ets:lookup(ip_table, Ip).
-
-
-insert_arp(Ip, HwType, Mac, Nic) ->
-    ets:insert(arp_table, [{Ip, HwType, Mac, Nic}]).
-
-
-del_arp(Ip) ->
-    ets:delete(arp_table, Ip).

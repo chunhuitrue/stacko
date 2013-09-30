@@ -68,6 +68,7 @@ nicread(DispatcherNum) ->
 %%     case nif:read_nic(Socket) of
 %%         {error, eagain} ->
 %%             timer:sleep(5);
+%% 如果是socket不可读，也需要等待          
 %%         {error, _Reason} ->
 %%             ok;
 %%         Res ->
