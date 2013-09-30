@@ -22,8 +22,7 @@
 -export([init/1]).
 
 -export([start_dispatcher/1]).
--export([start_nic/2]).
--export([stop_nic/1]).
+-export([start_nic/1]).
 
 
 start_link() ->
@@ -42,6 +41,11 @@ init([]) ->
 
 
 start_dispatcher(N) ->
+    dispatcher(N),
+    start_nic(N).
+
+
+dispatcher(N) ->
     if N >= 0 ->
             Name = list_to_atom(atom_to_list(dispatcher) ++ integer_to_list(N)),
             ChildSpec = {Name,                             % id
@@ -57,35 +61,23 @@ start_dispatcher(N) ->
     end.
 
 
-start_nic(NicName, DispatcherNum) ->
-    Socket = nif:open_nic(NicName),
+start_nic(DispatcherNum) ->
+    ReadSpec = {nicread_gen,                                           % id
+                {nic_in, start_link, [nicread_gen, DispatcherNum]},    % {Module, Function, Arguments}
+                permanent,                                             % Restart
+                brutal_kill,                                           % Shutdown
+                worker,                                                % Type
+                [nic_in]},                                             % ModuleList
+    supervisor:start_child(ip_sup, ReadSpec),
 
-    NameIn = name_in(NicName),
-    InSpec = {NameIn,                                                % id
-              {nic_in, start_link, [NameIn, Socket, DispatcherNum]}, % {Module, Function, Arguments}
-              permanent,                                             % Restart
-              brutal_kill,                                           % Shutdown
-              worker,                                                % Type
-              [nic_in]},                                             % ModuleList
-    supervisor:start_child(ip_sup, InSpec),
-
-    OutSpec = {NicName,                                  % id
-               {nic_out, start_link, [NicName, Socket]}, % {Module, Function, Arguments}
-               permanent,                                % Restart
-               brutal_kill,                              % Shutdown
-               worker,                                   % Type
-               [nic_out]},                               % ModuleList
-    supervisor:start_child(ip_sup, OutSpec).
+    WriteSpec = {nicwrite,                          % id
+                 {nic_out, start_link, [nicwrite]}, % {Module, Function, Arguments}
+                 permanent,                         % Restart
+                 brutal_kill,                       % Shutdown
+                 worker,                            % Type
+                 [nic_out]},                        % ModuleList
+    supervisor:start_child(ip_sup, WriteSpec).
 
 
-stop_nic(NicName) ->
-    NameIn = name_in(NicName),
-    supervisor:terminate_child(ip_sup, NameIn),
-    supervisor:delete_child(ip_sup, NameIn),
-
-    supervisor:terminate_child(ip_sup, NicName),
-    supervisor:delete_child(ip_sup, NicName).
 
 
-name_in(NicName) ->
-    list_to_atom(atom_to_list(NicName) ++ "_gen").

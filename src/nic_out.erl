@@ -17,7 +17,7 @@
 
 -behaviour(gen_server).
 -export([init/1]).
--export([start_link/2]).
+-export([start_link/1]).
 -export([handle_call/3]).
 -export([handle_cast/2]).
 -export([handle_info/2]).
@@ -28,12 +28,12 @@
 
 
 
-init([Socket]) ->
-    {ok, Socket}.
+init([]) ->
+    {ok, null}.
 
 
-start_link(NicName, Socket) ->
-    gen_server:start_link({local, NicName}, ?MODULE, [Socket], []).
+start_link(Name) ->
+    gen_server:start_link({local, Name}, ?MODULE, [], []).
 
 
 handle_cast(Packet, StateSocket) ->
