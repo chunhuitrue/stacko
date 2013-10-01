@@ -35,12 +35,22 @@ start_link(Name) ->
     gen_server:start_link({local, Name}, ?MODULE, [], []).
 
 
-handle_cast(acd, _State) ->
-    %% gratuitous(ets:first(ip_table)),
-    {noreply, null};
+%% HwType 1
+%% ProtType 0x0800
+%% HardSize 6
+%% ProtSize 4
+%% Op arp request 1. arp replay 2. rarp request 3. rarp replay 4.
 handle_cast(Packet, _State) ->
-    io:format("arp get a packet!~n"),
-    Packet,
+    io:format("arp get a packet. size: ~w~n", [bit_size(Packet)]),
+    <<_DstMAC:48, SrcMAC:48, 
+      _Type:16, 
+      HwType:16/integer-unsigned-big, ProtType:16/integer-unsigned-big,
+      HardSize:8/integer-unsigned-big, ProtSize:8/integer-unsigned-big,
+      Op:16/integer-unsigned-big,
+      SenderMAC:48, SenderIP:32, TargetMAC:48, TargetIP:32,
+      CRC:32/integer-unsigned-big,
+      _Rest/binary>> = Packet,
+
     {noreply, null}.
 
 

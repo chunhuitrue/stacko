@@ -34,6 +34,7 @@
 #define NICNAMELEN 64
 #define MAXNIC     8
 #define MAXFRAM    1518
+#define MACLEN     6
 
 
 static int          init();
@@ -181,13 +182,12 @@ static ERL_NIF_TERM nic_up(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
         nic[index].hw_type = 1; /* todo */
         close(sd);
         
-        if (!enif_alloc_binary(6, &buf)) {
+        if (!enif_alloc_binary(MACLEN, &buf)) {
                 return enif_make_tuple2(env, 
                                         enif_make_atom(env, "error"), 
                                         enif_make_atom(env, "alloc"));
         }
-        memcpy(buf.data, nic[index].ifr.ifr_hwaddr.sa_data, 6);
-        buf.size = 6;
+        memcpy(buf.data, nic[index].ifr.ifr_hwaddr.sa_data, MACLEN);
 
         return enif_make_tuple4(env,
                                 enif_make_int(env, index),
@@ -250,6 +250,14 @@ static ERL_NIF_TERM nic_recv(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]
                 return enif_make_tuple2(env, 
                                         enif_make_atom(env, "error"), 
                                         enif_make_atom(env, erl_errno_id(err)));
+        }
+
+        if (ret_size < buf.size) {
+                if (!enif_realloc_binary(&buf, ret_size)) {
+                        return enif_make_tuple2(env, 
+                                                enif_make_atom(env, "error"), 
+                                                enif_make_atom(env, "realloc"));
+                }
         }
         
         return enif_make_binary(env, &buf);
