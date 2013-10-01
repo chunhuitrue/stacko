@@ -68,8 +68,8 @@ nic_in(DispatcherNum, Acc) when Acc >= 0 ->
             timer:sleep(1000);
         {error, _Reason} ->
             ok;
-        Res ->
+        Packet ->
             DispName = list_to_atom(atom_to_list(dispatcher) ++ integer_to_list(Acc)),
-            dispatcher:to_dispatcher(DispName, Res)
+            dispatcher:to_dispatcher(DispName, Packet)
     end,
     nic_in(DispatcherNum, Acc - 1).

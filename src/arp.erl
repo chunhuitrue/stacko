@@ -25,8 +25,6 @@
 -export([code_change/3]).
 
 -export([to_arp/1]).
--export([acd/2]).
--export([gratuitous/1]).
 
 
 init([]) ->
@@ -37,13 +35,12 @@ start_link(Name) ->
     gen_server:start_link({local, Name}, ?MODULE, [], []).
 
 
-handle_cast({Iface, Packet}, _State) ->
-    %% io:format("arp get a packet!~n"),
-    Packet,
-    Iface,
-    {noreply, null};
 handle_cast(acd, _State) ->
     %% gratuitous(ets:first(ip_table)),
+    {noreply, null};
+handle_cast(Packet, _State) ->
+    io:format("arp get a packet!~n"),
+    Packet,
     {noreply, null}.
 
 
@@ -63,59 +60,5 @@ code_change(_Oldv, _State, _Extra) ->
     {ok, null}.
 
 
-to_arp(Res) ->
-    gen_server:cast(arp, Res).
-
-
-acd(Ip, Nic) ->
-    Ip,
-    Nic,
-    ok.
-
-%% acd() ->
-%%     case is_pid(whereis(arp))  of 
-%%         true ->
-%%             gen_server:cast(arp, acd);
-%%         _ ->
-%%             timer:sleep(10),
-%%             acd()
-%%     end.
-
-
-gratuitous(First) ->
-    case First of
-        '$end_of_table' ->
-            io:format("end_of_table.~n"),
-            ok;
-        _ ->
-            io:format("one ip.~n"),
-            DstMac = stacko:mac_to_binary([ff, ff, ff, ff, ff, ff]),
-
-            [{Ip, _Mask, Nic, Mac}] = tables:lookup_ip(First),
-            SrcMac = stacko:mac_to_binary(Mac),
-
-            Type = 16#0806,                    
-            HardType = 1,
-            ProtType = 16#0800,
-            HardSize = 6,
-            ProtSize = 4,
-            Op = 1,
-            SenderMac = SrcMac,
-            {A, B, C, D} = Ip,
-            SenderAddr = <<A:8, B:8, C:8, D:8>>,
-            TargetMac = stacko:mac_to_binary([0, 0, 0, 0, 0, 0]),
-            TargetAddr = SenderAddr,
-
-            Packet = <<DstMac/binary, SrcMac/binary, 
-                       Type:16, HardType:16, ProtType:16, HardSize:8, ProtSize:8, Op:16, 
-                       SenderMac/binary, SenderAddr/binary, 
-                       TargetMac/binary, TargetAddr/binary>>,
-            
-            nic_out:send(Nic, Packet),
-            %% nic_out:send(Nic, Packet),
-            %% nic_out:send(Nic, Packet),
-
-            gratuitous(ets:next(ip_table, First))
-    end.
-
-
+to_arp(Packet) ->
+    gen_server:cast(arp, Packet).

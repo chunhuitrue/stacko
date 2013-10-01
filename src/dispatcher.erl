@@ -35,13 +35,13 @@ start_link(Name) ->
     gen_server:start_link({local, Name}, ?MODULE, [Name], []).
 
 
-handle_cast({Nic, Packet}, StateName) ->
+handle_cast(Packet, StateName) ->
     if bit_size(Packet) >= 112 ->
             <<_Dmac:48, _Smac:48, Type:16/integer-unsigned-big, _Rest/binary>> = Packet,
             case Type  of
-                16#0806 ->                      % arp
-                    arp:to_arp({Nic, Packet});
-                16#0800 ->                      % ip
+                16#0806 ->                      
+                    arp:to_arp(Packet);
+                16#0800 ->                      
                     ok;
                 _ ->
                     ok
@@ -66,36 +66,34 @@ code_change(_Oldv, StateName, _Extra) ->
     {ok, StateName}.
 
 
-to_dispatcher(DispName, Res) ->
-    %% gen_server:cast(DispName, Res).
-    DispName,
-    Res,
-    ok.
+to_dispatcher(DispName, Packet) ->
+    gen_server:cast(DispName, Packet).
 
-test(Packet) ->
-    %% bits
-    <<DA:8, DB:8, DC:8, DD:8, DE:8, DF:8, A:8, B:8, C:8, D:8, E:8, F:8, 
-      Type:16/integer-unsigned-big, _Rest/binary>> = Packet,
 
-    Dmac = <<DA, DB, DC, DD, DE, DF>>,
-    Smac = <<A, B, C, D, E, F>>,
-    %% SelfMac = stacko:mac_to_binary([08, 00, 27, 48, c5, c8]),
-    SelfMac = <<16#08, 16#00, 16#27, 16#fc, 16#a2, 16#60>>,
-    %% Hostmac = <<16,154,221,169,20,250>>,
+%% test(Packet) ->
+%%     %% bits
+%%     <<DA:8, DB:8, DC:8, DD:8, DE:8, DF:8, A:8, B:8, C:8, D:8, E:8, F:8, 
+%%       Type:16/integer-unsigned-big, _Rest/binary>> = Packet,
 
-    io:format("Type: ~w~n", [Type]),
-    io:format("SelfMac: ~w ~w~n", [self(), SelfMac]),
-    %% io:format("HostMac: ~w~n", [Hostmac]),
-    io:format("Smac: ~w ~w~n", [self(), Smac]),
-    %% io:format("Smac2: ~w ~w~n", [self(), {A, B, C, D, E, F}]),
-    io:format("Dmac: ~w~n~n", [Dmac]),
-    io:format("Dmac2: ~w~n~n", [{DA, DB, DC, DD, DE, DF}]),
+%%     Dmac = <<DA, DB, DC, DD, DE, DF>>,
+%%     Smac = <<A, B, C, D, E, F>>,
+%%     %% SelfMac = stacko:mac_to_binary([08, 00, 27, 48, c5, c8]),
+%%     SelfMac = <<16#08, 16#00, 16#27, 16#fc, 16#a2, 16#60>>,
+%%     %% Hostmac = <<16,154,221,169,20,250>>,
 
-    case Smac of
-        SelfMac ->
-            io:format("get a sendout packet!~n"),
-            nic_out:send(p2p1, Packet);
-        _ ->
-            ok
-    end.
+%%     io:format("Type: ~w~n", [Type]),
+%%     io:format("SelfMac: ~w ~w~n", [self(), SelfMac]),
+%%     %% io:format("HostMac: ~w~n", [Hostmac]),
+%%     io:format("Smac: ~w ~w~n", [self(), Smac]),
+%%     %% io:format("Smac2: ~w ~w~n", [self(), {A, B, C, D, E, F}]),
+%%     io:format("Dmac: ~w~n~n", [Dmac]),
+%%     io:format("Dmac2: ~w~n~n", [{DA, DB, DC, DD, DE, DF}]),
+
+%%     case Smac of
+%%         SelfMac ->
+%%             io:format("get a sendout packet!~n"),
+%%             nic_out:send(p2p1, Packet);
+%%         _ ->
+%%             ok
+%%     end.
     

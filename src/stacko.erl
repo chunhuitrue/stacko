@@ -36,8 +36,7 @@ nic_down(NicName) ->
 
 
 conf_ip(Ip, Mask, Nic) ->
-    tables:insert_ip(Ip, Mask, Nic),
-    arp:acd(Ip, Nic).
+    tables:insert_ip(Ip, Mask, Nic).
 
 
 mac_to_binary(Mac) ->

@@ -22,7 +22,7 @@
 
 -export([create_arp/0]).
 -export([lookup_arp/1]).
--export([insert_arp/4]).
+-export([insert_arp/5]).
 -export([del_arp/1]).
 
 -export([create_ip/0]).
@@ -60,8 +60,8 @@ lookup_arp(Ip) ->
     ets:lookup(ip_table, Ip).
 
 
-insert_arp(Ip, HwType, Mac, Nic) ->
-    ets:insert(arp_table, [{Ip, HwType, Mac, Nic}]).
+insert_arp(Ip, HwType, Mac, Nic, Time) ->
+    ets:insert(arp_table, [{Ip, HwType, Mac, Nic, Time}]).
 
 
 del_arp(Ip) ->
