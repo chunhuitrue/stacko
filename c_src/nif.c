@@ -181,7 +181,7 @@ static ERL_NIF_TERM nic_up(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
         nic[index].hw_type = 1; /* todo */
         close(sd);
         
-        if (!enif_alloc_binary(MAXFRAM, &buf)) {
+        if (!enif_alloc_binary(6, &buf)) {
                 return enif_make_tuple2(env, 
                                         enif_make_atom(env, "error"), 
                                         enif_make_atom(env, "alloc"));
@@ -220,13 +220,14 @@ static ERL_NIF_TERM nic_down(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]
         }
 
         for (i = 0; i < MAXNIC; i++) {
-                if (strcmp(name, nic[i].nic_name) != 0) {
+                if (strlen(nic[i].nic_name) != 0) {
                         return enif_make_atom(env, "ok");
                         break;
                 }
         }
 
         close(sockfd);
+        sockfd = -1;
         return enif_make_atom(env, "ok");
 }
 
