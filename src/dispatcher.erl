@@ -67,8 +67,10 @@ code_change(_Oldv, StateName, _Extra) ->
 
 
 to_dispatcher(DispName, Res) ->
-    gen_server:cast(DispName, Res).
-
+    %% gen_server:cast(DispName, Res).
+    DispName,
+    Res,
+    ok.
 
 test(Packet) ->
     %% bits

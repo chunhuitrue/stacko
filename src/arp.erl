@@ -68,6 +68,8 @@ to_arp(Res) ->
 
 
 acd(Ip, Nic) ->
+    Ip,
+    Nic,
     ok.
 
 %% acd() ->

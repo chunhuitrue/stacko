@@ -55,7 +55,7 @@ dispatcher(N) ->
                          worker,                           % Type
                          [dispatcher]},                    % ModuleList
             supervisor:start_child(ip_sup, ChildSpec),
-            start_dispatcher(N - 1);
+            dispatcher(N - 1);
        N < 0 ->
             ok
     end.

@@ -24,11 +24,11 @@
 -export([terminate/2]).
 -export([code_change/3]).
 
--export([nicread/1]).
+-export([nic_read/1]).
 
 
 init([DispatcherNum]) ->
-    register(nicread, spawn_link(nic_in, nicread, [DispatcherNum])),
+    register(nicread, spawn_link(nic_in, nic_read, [DispatcherNum])),
     {ok, null}.
 
 
@@ -56,29 +56,20 @@ code_change(_Oldv, _State, _Extra) ->
     {ok, null}.
 
 
-nicread(DispatcherNum) ->
-    timer:sleep(10000),
-    nicread(DispatcherNum),
-    ok.
-
-
-%% nic_in(Socket, DispatcherNum) ->
-%%     nic_in(Socket, DispatcherNum, DispatcherNum - 1).
-%% nic_in(Socket, DispatcherNum, Acc) when Acc >= 0 ->
-%%     case nif:read_nic(Socket) of
-%%         {error, eagain} ->
-%%             timer:sleep(5);
-%% 如果是socket不可读，也需要等待          
-%%         {error, _Reason} ->
-%%             ok;
-%%         Res ->
-%%             io:format("get a packet ~w~n", [self()]),
-
-%%             DispName = list_to_atom(atom_to_list(dispatcher) ++ integer_to_list(Acc)),
-%%             dispatcher:to_dispatcher(DispName, Res)
-%%     end,
-%%     nic_in(Socket, DispatcherNum, Acc - 1);
-%% nic_in(Socket, DispatcherNum, Acc) when Acc < 0 ->
-%%     nic_in(Socket, DispatcherNum, DispatcherNum - 1).
-
-
+nic_read(DispatcherNum) ->
+    nic_in(DispatcherNum, DispatcherNum).
+nic_in(DispatcherNum, Acc) when Acc < 0 ->
+    nic_in(DispatcherNum, DispatcherNum);
+nic_in(DispatcherNum, Acc) when Acc >= 0 ->
+    case nif:nic_recv() of
+        {error, eagain} ->
+            timer:sleep(5);
+        {error, ebadf} ->
+            timer:sleep(1000);
+        {error, _Reason} ->
+            ok;
+        Res ->
+            DispName = list_to_atom(atom_to_list(dispatcher) ++ integer_to_list(Acc)),
+            dispatcher:to_dispatcher(DispName, Res)
+    end,
+    nic_in(DispatcherNum, Acc - 1).
