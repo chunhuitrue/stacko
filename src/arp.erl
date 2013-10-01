@@ -41,15 +41,31 @@ start_link(Name) ->
 %% ProtSize 4
 %% Op arp request 1. arp replay 2. rarp request 3. rarp replay 4.
 handle_cast(Packet, _State) ->
-    io:format("arp get a packet. size: ~w~n", [bit_size(Packet)]),
-    <<_DstMAC:48, SrcMAC:48, 
+    io:format("arp get a packet. PacketSize: ~w~n", [byte_size(Packet)]),
+    <<_DstMAC:48/bits, SrcMAC:48/bits, 
       _Type:16, 
       HwType:16/integer-unsigned-big, ProtType:16/integer-unsigned-big,
       HardSize:8/integer-unsigned-big, ProtSize:8/integer-unsigned-big,
       Op:16/integer-unsigned-big,
-      SenderMAC:48, SenderIP:32, TargetMAC:48, TargetIP:32,
-      CRC:32/integer-unsigned-big,
+      SenderMAC:48/bits, SenderIP:32/bits, TargetMAC:48/bits, TargetIP:32/bits,
       _Rest/binary>> = Packet,
+
+    case Op of
+        1 ->                                    
+            <<A:8, B:8, C:8, D:8>> = TargetIP,
+            RequestIP = {A, B, C, D},
+            case tables:lookup_ip(RequestIP) of
+                [{RequestIP, _Mask, Nic}] ->
+                    io:format("arp get a packet. it is me. ~w~n", [RequestIP]),
+                    RePacket = <<>>;
+                [] ->
+                    io:format("arp get a packet. it is not me. ~w~n", [RequestIP])
+            end;
+        2 ->
+            ok;
+        _ ->
+            ok
+    end,
 
     {noreply, null}.
 
