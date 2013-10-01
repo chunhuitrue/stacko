@@ -17,6 +17,7 @@
 
 -export([nic_up/1]).
 -export([nic_down/1]).
+-export([conf_ip/3]).
 -export([mac_to_binary/1]).
 
 
@@ -32,6 +33,11 @@ nic_up(NicName) ->
 nic_down(NicName) ->
     nif:nic_down(NicName),
     tables:del_nic(NicName).
+
+
+conf_ip(Ip, Mask, Nic) ->
+    tables:insert_ip(Ip, Mask, Nic),
+    arp:acd(Ip, Nic).
 
 
 mac_to_binary(Mac) ->

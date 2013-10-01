@@ -27,7 +27,7 @@
 
 -export([create_ip/0]).
 -export([lookup_ip/1]).
--export([insert_ip/4]).
+-export([insert_ip/3]).
 -export([del_ip/1]).
 
 
@@ -69,7 +69,7 @@ del_arp(Ip) ->
 
 
 %% ip table
-%% ip mask Iface mac
+%% ip mask nic
 create_ip() ->
     ets:new(ip_table, [set, public, named_table, public]).
 
@@ -78,8 +78,8 @@ lookup_ip(Ip) ->
     ets:lookup(ip_table, Ip).
 
 
-insert_ip(Ip, Mask, Nic, Mac) ->
-    ets:insert(ip_table, [{Ip, Mask, Nic, Mac}]).
+insert_ip(Ip, Mask, Nic) ->
+    ets:insert(ip_table, [{Ip, Mask, Nic}]).
 
 
 del_ip(Ip) ->

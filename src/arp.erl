@@ -25,7 +25,7 @@
 -export([code_change/3]).
 
 -export([to_arp/1]).
--export([acd/0]).
+-export([acd/2]).
 -export([gratuitous/1]).
 
 
@@ -67,14 +67,17 @@ to_arp(Res) ->
     gen_server:cast(arp, Res).
 
 
-acd() ->
-    case is_pid(whereis(arp))  of 
-        true ->
-            gen_server:cast(arp, acd);
-        _ ->
-            timer:sleep(10),
-            acd()
-    end.
+acd(Ip, Nic) ->
+    ok.
+
+%% acd() ->
+%%     case is_pid(whereis(arp))  of 
+%%         true ->
+%%             gen_server:cast(arp, acd);
+%%         _ ->
+%%             timer:sleep(10),
+%%             acd()
+%%     end.
 
 
 gratuitous(First) ->

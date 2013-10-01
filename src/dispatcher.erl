@@ -42,8 +42,6 @@ handle_cast({Nic, Packet}, StateName) ->
                 16#0806 ->                      % arp
                     arp:to_arp({Nic, Packet});
                 16#0800 ->                      % ip
-                    %% io:format("get a ip  packet!~n"),
-                    %% test(Packet),
                     ok;
                 _ ->
                     ok
