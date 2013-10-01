@@ -42,12 +42,12 @@ start_link(Name) ->
 %% Op arp request 1. arp replay 2. rarp request 3. rarp replay 4.
 handle_cast(Packet, _State) ->
     io:format("arp get a packet. PacketSize: ~w~n", [byte_size(Packet)]),
-    <<_DstMAC:48/bits, SrcMAC:48/bits, 
-      _Type:16, 
+    <<_DstMAC:48/bits, _SrcMAC:48/bits, 
+      Type:16/integer-unsigned-big, 
       HwType:16/integer-unsigned-big, ProtType:16/integer-unsigned-big,
       HardSize:8/integer-unsigned-big, ProtSize:8/integer-unsigned-big,
       Op:16/integer-unsigned-big,
-      SenderMAC:48/bits, SenderIP:32/bits, TargetMAC:48/bits, TargetIP:32/bits,
+      SenderMAC:48/bits, SenderIP:32/bits, _TargetMAC:48/bits, TargetIP:32/bits,
       _Rest/binary>> = Packet,
 
     case Op of
@@ -57,7 +57,18 @@ handle_cast(Packet, _State) ->
             case tables:lookup_ip(RequestIP) of
                 [{RequestIP, _Mask, Nic}] ->
                     io:format("arp get a packet. it is me. ~w~n", [RequestIP]),
-                    RePacket = <<>>;
+                    [{Nic, NicIndex, SelfMAC, _HwType, _MTU}] = tables:lookup_nic(Nic),
+                    RePacket = <<SenderMAC:48/bits, SelfMAC:48/bits,
+                                 Type:16/integer-unsigned-big, 
+                                 HwType:16/integer-unsigned-big, ProtType:16/integer-unsigned-big,
+                                 HardSize:8/integer-unsigned-big, ProtSize:8/integer-unsigned-big,
+                                 2:16/integer-unsigned-big,
+                                 SelfMAC:48/bits, TargetIP:32/bits, 
+                                 SenderMAC:48/bits, SenderIP:32/bits>>,
+                    nic_out:send(NicIndex, RePacket),
+                    Pad = <<0:8/unit:18>>,
+                    RePacketPad = <<RePacket/bits, Pad/bits>>,
+                    nic_out:send(NicIndex, RePacketPad);
                 [] ->
                     io:format("arp get a packet. it is not me. ~w~n", [RequestIP])
             end;
@@ -66,7 +77,6 @@ handle_cast(Packet, _State) ->
         _ ->
             ok
     end,
-
     {noreply, null}.
 
 

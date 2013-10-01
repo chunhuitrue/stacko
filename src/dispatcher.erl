@@ -36,16 +36,14 @@ start_link(Name) ->
 
 
 handle_cast(Packet, StateName) ->
-    if bit_size(Packet) >= 112 ->
-            <<_DMAC:48, _SMAC:48, Type:16/integer-unsigned-big, _Rest/binary>> = Packet,
-            case Type  of
-                16#0806 ->                      
-                    arp:to_arp(Packet);
-                16#0800 ->                      
-                    ok;
-                _ ->
-                    ok
-            end
+    <<_DMAC:48, _SMAC:48, Type:16/integer-unsigned-big, _Rest/binary>> = Packet,
+    case Type  of
+        16#0806 ->                      
+            arp:to_arp(Packet);
+        16#0800 ->                      
+            ok;
+        _ ->
+            ok
     end,
     {noreply, StateName}.
 
