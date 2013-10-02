@@ -24,6 +24,8 @@
 -on_load(init/0).
 
 -define(nif_stub, nif_stub_error(?LINE)).
+
+
 nif_stub_error(Line) ->
     erlang:nif_error({nif_not_loaded,module,?MODULE,line,Line}).
 

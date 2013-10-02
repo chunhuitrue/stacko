@@ -15,6 +15,8 @@
 
 -module(dispatcher).
 
+-include("head.hrl").
+
 -behaviour(gen_server).
 -export([init/1]).
 -export([start_link/1]).
@@ -38,9 +40,9 @@ start_link(Name) ->
 handle_cast(Packet, StateName) ->
     <<_DMAC:48, _SMAC:48, Type:16/integer-unsigned-big, _Rest/binary>> = Packet,
     case Type  of
-        16#0806 ->                      
+        ?TYPE_ARP ->                      
             arp:to_arp(Packet);
-        16#0800 ->                      
+        ?TYPE_IP ->                      
             ok;
         _ ->
             ok

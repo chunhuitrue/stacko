@@ -15,6 +15,8 @@
 
 -module(arp).
 
+-include("head.hrl").
+
 -behaviour(gen_server).
 -export([init/1]).
 -export([start_link/1]).
@@ -25,6 +27,8 @@
 -export([code_change/3]).
 
 -export([to_arp/1]).
+-export([arp_request/3]).
+-export([test/0]).
 
 
 init([]) ->
@@ -51,13 +55,13 @@ handle_cast(Packet, _State) ->
       _Rest/binary>> = Packet,
 
     case Op of
-        1 ->                                    
+        ?OP_ARP_REQUEST ->                                    
             <<A:8, B:8, C:8, D:8>> = TargetIP,
             RequestIP = {A, B, C, D},
             case tables:lookup_ip(RequestIP) of
                 [{RequestIP, _Mask, Nic}] ->
                     io:format("arp get a packet. it is me. ~w~n", [RequestIP]),
-                    [{Nic, NicIndex, SelfMAC, _HwType, _MTU}] = tables:lookup_nic(Nic),
+                    [{Nic, NicIndex, SelfMAC, HwType, _MTU}] = tables:lookup_nic(Nic),
                     RePacket = <<SenderMAC:48/bits, SelfMAC:48/bits,
                                  Type:16/integer-unsigned-big, 
                                  HwType:16/integer-unsigned-big, ProtType:16/integer-unsigned-big,
@@ -72,7 +76,7 @@ handle_cast(Packet, _State) ->
                 [] ->
                     io:format("arp get a packet. it is not me. ~w~n", [RequestIP])
             end;
-        2 ->
+        ?OP_ARP_REPLAY ->
             ok;
         _ ->
             ok
@@ -98,3 +102,30 @@ code_change(_Oldv, _State, _Extra) ->
 
 to_arp(Packet) ->
     gen_server:cast(arp, Packet).
+
+
+arp_request(SelfIP, TargetIP, NicName) ->
+    [{_NicName, Index, SelfMAC, HwType, _MTU}] = tables:lookup_nic(NicName),
+
+    DstMAC = <<16#ff:8, 16#ff:8, 16#ff:8, 16#ff:8, 16#ff:8, 16#ff:8>>,
+    TargetMAC = <<0:8/unit:6>>,
+    {A, B, C, D} = SelfIP,
+    SenderIP = <<A:8, B:8, C:8, D:8>>,
+    {A1, B1, C1, D1} = TargetIP,
+    TargetIPbit = <<A1:8, B1:8, C1:8, D1:8>>,
+
+    Packet = <<DstMAC:48/bits, SelfMAC:48/bits,
+               ?TYPE_ARP:16/integer-unsigned-big,
+               HwType:16/integer-unsigned-big, ?PROT_TYPE_IP:16/integer-unsigned-big,
+               ?MAC_SIZE:8/integer-unsigned-big, ?IP_SIZE:8/integer-unsigned-big,
+               ?OP_ARP_REQUEST:16/integer-unsigned-big,
+               SelfMAC:48/bits, SenderIP:32/bits, TargetMAC:48/bits, TargetIPbit:32/bits>>,
+    nic_out:send(Index, Packet),
+
+    Pad = <<0:8/unit:18>>,
+    PacketPad = <<Packet/bits, Pad/bits>>,
+    nic_out:send(Index, PacketPad).
+
+
+test() ->
+    arp:arp_request({192,168,1,8}, {192,168,1,11}, p2p1).
