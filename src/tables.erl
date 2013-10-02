@@ -56,16 +56,16 @@ create_arp() ->
     ets:new(arp_table, [set, public, named_table, public]).
 
 
-lookup_arp(Ip) ->
-    ets:lookup(ip_table, Ip).
+lookup_arp(IP) ->
+    ets:lookup(arp_table, IP).
 
 
-insert_arp(Ip, HwType, Mac, Nic, Time) ->
-    ets:insert(arp_table, [{Ip, HwType, Mac, Nic, Time}]).
+insert_arp(IP, HwType, MAC, NIC, Time) ->
+    ets:insert(arp_table, [{IP, HwType, MAC, NIC, Time}]).
 
 
-del_arp(Ip) ->
-    ets:delete(arp_table, Ip).
+del_arp(IP) ->
+    ets:delete(arp_table, IP).
 
 
 %% ip table
@@ -74,15 +74,15 @@ create_ip() ->
     ets:new(ip_table, [set, public, named_table, public]).
 
 
-lookup_ip(Ip) ->
-    ets:lookup(ip_table, Ip).
+lookup_ip(IP) ->
+    ets:lookup(ip_table, IP).
 
 
-insert_ip(Ip, Mask, Nic) ->
-    ets:insert(ip_table, [{Ip, Mask, Nic}]).
+insert_ip(IP, Mask, Nic) ->
+    ets:insert(ip_table, [{IP, Mask, Nic}]).
 
 
-del_ip(Ip) ->
-    ets:delete(ip_table, Ip).
+del_ip(IP) ->
+    ets:delete(ip_table, IP).
 
 

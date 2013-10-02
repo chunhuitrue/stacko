@@ -28,7 +28,7 @@
 
 -export([to_arp/1]).
 -export([arp_request/3]).
--export([test/0]).
+-export([test_request/0]).
 
 
 init([]) ->
@@ -127,5 +127,5 @@ arp_request(SelfIP, TargetIP, NicName) ->
     nic_out:send(Index, PacketPad).
 
 
-test() ->
+test_request() ->
     arp:arp_request({192,168,1,8}, {192,168,1,11}, p2p1).

@@ -17,6 +17,8 @@
 
 -export([nic_up/1]).
 -export([nic_down/1]).
+-export([arp/0]).
+-export([test_arp/0]).
 -export([conf_ip/3]).
 -export([mac_to_binary/1]).
 
@@ -33,6 +35,24 @@ nic_up(NicName) ->
 nic_down(NicName) ->
     nif:nic_down(NicName),
     tables:del_nic(NicName).
+
+
+arp('$end_of_table') ->
+    ok;
+arp(First) ->
+   [{IP, HwType, MAC, NIC, _Time}] = tables:lookup_arp(First),
+    io:format("~w ~w ~w ~w~n", [IP, HwType, MAC, NIC]),
+    arp(ets:next(arp_table, First)).
+arp() ->
+   arp(ets:first(arp_table)).
+
+
+test_arp() ->
+    MAC = <<16#ff:8, 16#ff:8, 16#ff:8, 16#ff:8, 16#ff:8, 16#ff:8>>,
+    {_MegaSecs, Now, _MicroSecs} = erlang:now(),
+    tables:insert_arp({192, 168, 1, 20}, 1, MAC, p2p1, Now),
+    tables:insert_arp({192, 168, 1, 21}, 1, MAC, p2p1, Now),
+    tables:insert_arp({192, 168, 1, 22}, 1, MAC, p2p1, Now).
 
 
 conf_ip(Ip, Mask, Nic) ->
