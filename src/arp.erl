@@ -54,31 +54,31 @@ handle_cast(Packet, _State) ->
       SenderMAC:48/bits, SenderIP:32/bits, _TargetMAC:48/bits, TargetIP:32/bits,
       _Rest/binary>> = Packet,
 
-    case Op of
-        ?OP_ARP_REQUEST ->                                    
-            <<A:8, B:8, C:8, D:8>> = TargetIP,
-            RequestIP = {A, B, C, D},
-            case tables:lookup_ip(RequestIP) of
-                [{RequestIP, _Mask, Nic}] ->
+    <<A:8, B:8, C:8, D:8>> = TargetIP,
+    RequestIP = {A, B, C, D},
+    case tables:lookup_ip(RequestIP) of
+        [{RequestIP, _Mask, NIC}] ->            %is about me
+            if Op == ?OP_ARP_REQUEST ->
                     io:format("arp get a packet. it is me. ~w~n", [RequestIP]),
-                    [{Nic, NicIndex, SelfMAC, HwType, _MTU}] = tables:lookup_nic(Nic),
-                    RePacket = <<SenderMAC:48/bits, SelfMAC:48/bits,
-                                 Type:16/integer-unsigned-big, 
-                                 HwType:16/integer-unsigned-big, ProtType:16/integer-unsigned-big,
-                                 HardSize:8/integer-unsigned-big, ProtSize:8/integer-unsigned-big,
-                                 2:16/integer-unsigned-big,
-                                 SelfMAC:48/bits, TargetIP:32/bits, 
-                                 SenderMAC:48/bits, SenderIP:32/bits>>,
-                    nic_out:send(NicIndex, RePacket),
+                    [{NIC, NicIndex, SelfMAC, HwType, _MTU}] = tables:lookup_nic(NIC),
                     Pad = <<0:8/unit:18>>,
-                    RePacketPad = <<RePacket/bits, Pad/bits>>,
-                    nic_out:send(NicIndex, RePacketPad);
-                [] ->
-                    io:format("arp get a packet. it is not me. ~w~n", [RequestIP])
+                    RePacket = <<SenderMAC:48/bits, SelfMAC:48/bits,
+                               Type:16/integer-unsigned-big, 
+                               HwType:16/integer-unsigned-big, ProtType:16/integer-unsigned-big,
+                               HardSize:8/integer-unsigned-big, ProtSize:8/integer-unsigned-big,
+                               2:16/integer-unsigned-big,
+                               SelfMAC:48/bits, TargetIP:32/bits, 
+                               SenderMAC:48/bits, SenderIP:32/bits,
+                               Pad/bits>>,
+                    nic_out:send(NicIndex, RePacket);
+               Op == ?OP_ARP_REPLAY ->
+                    io:format("arp get a replay. ~n"),
+                    <<A1:8, B1:8, C1:8, D1:8>> = SenderIP,
+                    AnswerIP = {A1, B1, C1, D1},
+                    {_MegaSecs, Now, _MicroSecs} = erlang:now(),
+                    tables:insert_arp(AnswerIP, HwType, SenderMAC, NIC, Now)
             end;
-        ?OP_ARP_REPLAY ->
-            ok;
-        _ ->
+        [] ->                                   %not about me
             ok
     end,
     {noreply, null}.
@@ -114,17 +114,15 @@ arp_request(SelfIP, TargetIP, NicName) ->
     {A1, B1, C1, D1} = TargetIP,
     TargetIPbit = <<A1:8, B1:8, C1:8, D1:8>>,
 
+    Pad = <<0:8/unit:18>>,
     Packet = <<DstMAC:48/bits, SelfMAC:48/bits,
                ?TYPE_ARP:16/integer-unsigned-big,
                HwType:16/integer-unsigned-big, ?PROT_TYPE_IP:16/integer-unsigned-big,
                ?MAC_SIZE:8/integer-unsigned-big, ?IP_SIZE:8/integer-unsigned-big,
                ?OP_ARP_REQUEST:16/integer-unsigned-big,
-               SelfMAC:48/bits, SenderIP:32/bits, TargetMAC:48/bits, TargetIPbit:32/bits>>,
-    nic_out:send(Index, Packet),
-
-    Pad = <<0:8/unit:18>>,
-    PacketPad = <<Packet/bits, Pad/bits>>,
-    nic_out:send(Index, PacketPad).
+               SelfMAC:48/bits, SenderIP:32/bits, TargetMAC:48/bits, TargetIPbit:32/bits,
+               Pad/bits>>,
+    nic_out:send(Index, Packet).
 
 
 test_request() ->
