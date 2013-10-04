@@ -34,6 +34,7 @@
 
 init([]) ->
     erlang:send_after(?ARP_TIMEOUT, self(), timeout),
+    erlang:send_after(?ARP_REFRESH_TIME, self(), refresh),
     {ok, null}.
 
 
@@ -57,31 +58,34 @@ handle_cast(Packet, _State) ->
       _Rest/binary>> = Packet,
 
     <<A:8, B:8, C:8, D:8>> = TargetIP,
-    RequestIP = {A, B, C, D},
-    case tables:lookup_ip(RequestIP) of
-        [{RequestIP, _Mask, NIC}] ->            %is about me
-            if Op == ?OP_ARP_REQUEST ->
-                    %% io:format("arp get a packet. it is me. ~w~n", [RequestIP]),
-                    [{NIC, NicIndex, SelfMAC, HwType, _MTU}] = tables:lookup_nic(NIC),
-                    Pad = <<0:8/unit:18>>,
-                    RePacket = <<SenderMAC:48/bits, SelfMAC:48/bits,
-                               Type:16/integer-unsigned-big, 
-                               HwType:16/integer-unsigned-big, ProtType:16/integer-unsigned-big,
-                               HardSize:8/integer-unsigned-big, ProtSize:8/integer-unsigned-big,
-                               2:16/integer-unsigned-big,
-                               SelfMAC:48/bits, TargetIP:32/bits, 
-                               SenderMAC:48/bits, SenderIP:32/bits,
-                               Pad/bits>>,
-                    nic_out:send(NicIndex, RePacket);
-               Op == ?OP_ARP_REPLAY ->
-                    %% io:format("arp get a replay. ~n"),
-                    <<A1:8, B1:8, C1:8, D1:8>> = SenderIP,
-                    AnswerIP = {A1, B1, C1, D1},
-                    {_MegaSecs, Now, _MicroSecs} = erlang:now(),
-                    tables:insert_arp(AnswerIP, HwType, SenderMAC, NIC, Now)
-            end;
-        [] ->                                   %not about me
-            ok
+    TargetIPnum = {A, B, C, D},
+    <<A1:8, B1:8, C1:8, D1:8>> = SenderIP,
+    SenderIPnum = {A1, B1, C1, D1},
+    {_MegaSecs, Now, _MicroSecs} = erlang:now(),
+
+    if HwType == ?HW_TYPE_MAC ->
+            case tables:lookup_ip(TargetIPnum) of
+                [{TargetIPnum, _Mask, NIC}] ->          %is about me
+                    if Op == ?OP_ARP_REQUEST ->
+                            %% io:format("arp get a packet. it is me. ~w~n", [TargetIPnum]),
+                            [{NIC, NicIndex, SelfMAC, SelfHwType, _MTU}] = tables:lookup_nic(NIC),
+                            Pad = <<0:8/unit:18>>,
+                            RePacket = <<SenderMAC:48/bits, SelfMAC:48/bits,
+                                         Type:16/integer-unsigned-big, 
+                                         SelfHwType:16/integer-unsigned-big, ProtType:16/integer-unsigned-big,
+                                         HardSize:8/integer-unsigned-big, ProtSize:8/integer-unsigned-big,
+                                         2:16/integer-unsigned-big,
+                                         SelfMAC:48/bits, TargetIP:32/bits, 
+                                         SenderMAC:48/bits, SenderIP:32/bits,
+                                         Pad/bits>>,
+                            nic_out:send(NicIndex, RePacket);
+                       Op == ?OP_ARP_REPLAY ->
+                            %% io:format("arp get a replay. ~n"),
+                            tables:insert_arp(SenderIPnum, HwType, SenderMAC, NIC, Now)
+                    end;
+                [] ->                                   %not about me
+                    ok
+            end
     end,
     {noreply, null}.
 
@@ -93,6 +97,10 @@ handle_call(_Request, _Rrom, _State) ->
 handle_info(timeout, _State) ->
     del_timeout(),
     erlang:send_after(?ARP_TIMEOUT, self(), timeout),
+    {noreply, null};
+handle_info(refresh, _State) ->
+    refresh(),
+    erlang:send_after(?ARP_REFRESH_TIME, self(), refresh),
     {noreply, null}.
 
 
@@ -144,15 +152,36 @@ test_request() ->
     arp:arp_request({192,168,1,8}, {192,168,1,11}, p2p1).
 
 
-del_timeout('$end_of_table') ->
+del_timeout('$end_of_table', _Now) ->
     ok;
-del_timeout(First) ->
-    {_MegaSecs, Now, _MicroSecs} = erlang:now(),
-    [{IP, _HwType, _MAC, _NIC, Time}] = tables:lookup_arp(),
-    if (Now - Time) >= ?ARP_TIMEOUT ->
-            tables:del_arp(IP)
-    end,
-    del_timeout(ets:next(arp_table, First)).
+del_timeout(First, Now) ->
+    [{IP, _HwType, _MAC, _NIC, Time}] = tables:lookup_arp(First), 
+    if (Now - Time) >= ?ARP_TIMEOUT_SECOND ->
+            tables:del_arp(IP);
+       (Now - Time) < ?ARP_TIMEOUT_SECOND ->
+            del_timeout(ets:next(arp_table, First), Now)
+    end.
 del_timeout() ->
-    del_timeout(ets:first(arp_table)).
+    {_MegaSecs, Now, _MicroSecs} = erlang:now(),
+    del_timeout(ets:first(arp_table), Now).
     
+
+refresh('$end_of_table', _Now, []) ->
+    ok;
+refresh('$end_of_table', _Now, [{TargetIP, _HwType, _MAC, NIC, _Time}]) ->
+    arp_request(stacko:get_ip_from_nic(NIC), TargetIP, NIC);
+refresh(First, Now, [{Acc_IP, Acc_HwType, Acc_MAC, Acc_NIC, Acc_Time}]) ->
+    [{IP, HwType, MAC, NIC, Time}] = tables:lookup_arp(First),
+    Next = ets:next(arp_table, First),
+    if (Now - Time) < (Now - Acc_Time) ->
+            refresh(Next, Now, [{IP, HwType, MAC, NIC, Time}]);
+       (Now - Time) >= (Now - Acc_Time) ->
+            refresh(Next, Now, [{Acc_IP, Acc_HwType, Acc_MAC, Acc_NIC, Acc_Time}])
+    end.
+refresh() ->
+    {_MegaSecs, Now, _MicroSecs} = erlang:now(),
+    First = ets:first(arp_table),
+    Acc = tables:lookup_arp(First),
+    refresh(First, Now, Acc).
+
+

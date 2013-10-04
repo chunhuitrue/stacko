@@ -18,9 +18,11 @@
 -export([nic_up/1]).
 -export([nic_down/1]).
 -export([arp/0]).
--export([test_arp/0]).
 -export([conf_ip/3]).
 -export([mac_to_binary/1]).
+-export([get_ip_from_nic/1]).
+
+-export([test_arp/0]).
 
 
 nic_up(NicName) ->
@@ -78,5 +80,15 @@ mac_to_binary([A | Tail], Acc) ->
     end.
 
 
-
+get_ip_from_nic('$end_of_table', _NicName) ->
+    null;
+get_ip_from_nic(First, NicName) ->
+    case tables:lookup_ip(First) of
+        [{IP, _Mask, NicName}] ->
+            IP;
+        _ ->
+            get_ip_from_nic(ets:next(ip_table, First), NicName)
+    end.
+get_ip_from_nic(NicName) ->
+    get_ip_from_nic(ets:first(ip_table), NicName).
 

@@ -23,4 +23,6 @@
 -define(OP_ARP_REQUEST, 1).
 -define(OP_ARP_REPLAY, 2).
 -define(ARP_TIMEOUT, 300000).
+-define(ARP_TIMEOUT_SECOND, 300). 
+-define(ARP_REFRESH_TIME, 20000).
 
