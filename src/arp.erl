@@ -28,6 +28,7 @@
 
 -export([to_arp/1]).
 -export([arp_request/3]).
+-export([arp_find/1]).
 -export([test_request/0]).
 
 
@@ -123,6 +124,18 @@ arp_request(SelfIP, TargetIP, NicName) ->
                SelfMAC:48/bits, SenderIP:32/bits, TargetMAC:48/bits, TargetIPbit:32/bits,
                Pad/bits>>,
     nic_out:send(Index, Packet).
+
+
+arp_find(IP) ->
+    case tables:lookup_arp(IP) of
+        [{IP, HwType, MAC, NIC, _Time}] ->
+            {_MegaSecs, Now, _MicroSecs} = erlang:now(),
+            tables:insert_arp(IP, HwType, MAC, NIC, Now),
+            MAC;
+        []  ->
+            null
+    end.
+
 
 
 test_request() ->
