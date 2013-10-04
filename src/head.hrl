@@ -22,4 +22,5 @@
 -define(IP_SIZE, 4).
 -define(OP_ARP_REQUEST, 1).
 -define(OP_ARP_REPLAY, 2).
+-define(ARP_TIMEOUT, 300000).
 
