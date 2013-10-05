@@ -16,6 +16,8 @@
 
 -module(icmp).
 
+-include("head.hrl").
+
 -behaviour(gen_server).
 -export([init/1]).
 -export([start_link/0]).
@@ -49,7 +51,7 @@ handle_cast(Packet, _State) ->
     <<_DMAC:48, _SMAC:48, _Type:16/integer-unsigned-big,
       _Version:4, HeadLen4Byte:4, _TOS:8, TotalLenByte:16/integer-unsigned-big,
       _ID:16, _Flg:3, _FragOff:13/integer-unsigned-big,
-      _TTL:8, _Protocol:8, _CRC:16,  
+      _TTL:8, _Protocol:8, _CRCIP:16,  
       SrcIP1:8, SrcIP2:8, SrcIP3:8, SrcIP4:8, 
       DstIP1:8, DstIP2:8, DstIP3:8, DstIP4:8, 
       IPPayload/binary>> = Packet,
@@ -59,24 +61,22 @@ handle_cast(Packet, _State) ->
     HeadLen = HeadLen4Byte * 32,
     TotalLen = TotalLenByte * 8,
     ICMPLen = TotalLen - HeadLen,
-    <<ICMP:ICMPLen/bits, _Rest/binary>> = IPPayload,
-    <<Type:8, Code:8, CRC:16/integer-unsigned-big, Date/binary>> = ICMP,
-    %% io:format("====================== icmp len bit: ~w ~n", [ICMPLen]),
-    %% io:format("====================== HeadLen bit: ~w ~n", [HeadLen]),
-    %% io:format("====================== TotalLen bit: ~w ~n", [TotalLen]),
-    io:format("====================== Type: ~w ~n", [Type]),
-    io:format("====================== Code: ~w ~n", [Code]),
-    io:format("====================== CRC: ~w ~n", [CRC]),
-    io:format("====================== CRC2: ~w ~n", [stacko:checksum(ICMP)]),
 
-    case tables:lookup_ip(DstIPTuple) of
-        [{_IP, _Mask, _Nic}] ->
-            
+    case tables:is_my_ip(DstIPTuple) of
+        true ->    
+            <<ICMP:ICMPLen/bits, _Rest/binary>> = IPPayload,
+            <<Type:8, Code:8, _CRC:16/integer-unsigned-big, Date/binary>> = ICMP,
+            CRC = stacko:checksum(ICMP),
 
-            ok;
-        [] ->
+            if CRC =:= 0, Type =:= 8, Code =:= 0 ->
+                    io:format("====================== request me! ~n");
+               true ->
+                    ok
+            end;
+        false ->
             ok
     end,
+
     {noreply, null}.
 
 

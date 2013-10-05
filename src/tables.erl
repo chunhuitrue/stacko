@@ -29,6 +29,8 @@
 -export([lookup_ip/1]).
 -export([insert_ip/3]).
 -export([del_ip/1]).
+-export([is_my_ip/1]).
+
 
 -export([create_route/0]).
 -export([insert_route/6]).
@@ -89,6 +91,15 @@ insert_ip(IP, Mask, Nic) ->
 
 del_ip(IP) ->
     ets:delete(ip_table, IP).
+
+
+is_my_ip(IP) ->
+    case lookup_ip(IP) of
+        [{_IP, _Mask, _Nic}] ->
+            true;
+        [] ->
+            false
+    end.
 
 
 %% route table
