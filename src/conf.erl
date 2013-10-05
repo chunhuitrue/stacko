@@ -15,6 +15,8 @@
 
 -module(conf).
 
+-include("head.hrl").
+
 -behaviour(gen_server).
 -export([init/1]).
 -export([start_link/0]).
@@ -24,11 +26,10 @@
 -export([terminate/2]).
 -export([code_change/3]).
 
--define(LOOP_TIME, 1000).
 
 
 init([]) ->
-    erlang:send_after(?LOOP_TIME, self(), watch_conf),
+    erlang:send_after(?CONF_LOOP_TIME, self(), watch_conf),
     {ok, null}.
 
 
@@ -38,7 +39,7 @@ start_link() ->
 
 handle_info(watch_conf, _State) ->
     load_conf(),
-    %% erlang:send_after(?LOOP_TIME, self(), watch_conf),
+    %% erlang:send_after(?CONF_LOOP_TIME, self(), watch_conf),
     {noreply, null}.
 
 

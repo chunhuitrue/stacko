@@ -30,6 +30,12 @@ start_link() ->
 
 
 init([]) ->
+    IcmpSpec = {icmp,                  % id
+               {icmp, start_link, []}, % {Module, Function, Arguments}
+               permanent,              % Restart
+               brutal_kill,            % Shutdown
+               worker,                 % Type
+               [icmp]},                % ModuleList
     ArpSpec = {arp,                      % id
                {arp, start_link, [arp]}, % {Module, Function, Arguments}
                permanent,                % Restart
@@ -37,7 +43,7 @@ init([]) ->
                worker,                   % Type
                [arp]},                   % ModuleList
     SuperSpec = {one_for_one, 5, 5},
-    {ok, {SuperSpec, [ArpSpec]}}.
+    {ok, {SuperSpec, [ArpSpec, IcmpSpec]}}.
 
 
 start_dispatcher(N) ->
