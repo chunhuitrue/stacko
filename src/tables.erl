@@ -33,6 +33,7 @@
 -export([create_route/0]).
 -export([insert_route/6]).
 -export([del_route/1]).
+-export([find_route/1]).
 
 
 
@@ -91,14 +92,50 @@ del_ip(IP) ->
 
 
 %% route table
-%% index destination  gateway  mask  flag  nic
+%% num  destination  gateway  mask  flag  nic
 create_route() ->
     ets:new(route_table, [ordered_set,  public, named_table, public]).
     
 
-insert_route(Index, Destiantion, Gateway, Mask, Flag, NIC) ->
-    ets:insert(route_table, [{Index, Destiantion, Gateway, Mask, Flag, NIC}]).
+insert_route(Num, Destiantion, Gateway, Mask, Flag, NIC) ->
+    ets:insert(route_table, [{Num, Destiantion, Gateway, Mask, Flag, NIC}]).
 
 
 del_route(Num) ->
     ets:delete(route_table, Num).
+
+
+find_route('$end_of_table', _IP, null) -> 
+    noroute;
+find_route('$end_of_table', _IP, {_DestIP, Gateway, _Mask, Flag, NIC}) -> 
+    case lists:member($G, Flag) of
+        true ->
+            {gateway, Gateway, NIC};
+        false ->
+            {direct, NIC}
+    end;
+find_route(First, IP, Acc) ->
+    [{_Num, DestIPTuple, Gateway, MaskTuple, Flag, NIC}] = ets:lookup(route_table, First),
+    DestIP = stacko:get_num_ip(DestIPTuple),
+    Mask = stacko:get_num_ip(MaskTuple),
+    IPNum = stacko:get_num_ip(IP),
+
+    if (IPNum band Mask) == DestIP ->
+            case Acc of
+                null ->
+                    find_route(ets:next(route_table, First), 
+                               IP, {DestIPTuple, Gateway, MaskTuple, Flag, NIC});
+                {_DestIPAcc, _GatewayAcc, MaskAccTuple, _FlagAcc, _NICAcc} ->
+                    MaskAcc = stacko:get_num_ip(MaskAccTuple),
+                    if Mask > MaskAcc ->
+                            find_route(ets:next(route_table, First), 
+                                       IP, {DestIPTuple, Gateway, MaskTuple, Flag, NIC});
+                       Mask =< MaskAcc ->
+                            find_route(ets:next(route_table, First), IP, Acc)
+                    end
+            end;
+       (IPNum band Mask) /= DestIP ->
+            find_route(ets:next(route_table, First), IP, Acc)
+    end.
+find_route(IP) ->
+    find_route(ets:first(route_table), IP, null).

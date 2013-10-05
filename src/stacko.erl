@@ -24,6 +24,7 @@
 -export([route/1]).
 -export([route/2]).
 -export([route/6]).
+-export([get_num_ip/1]).
 
 -export([test_arp/0]).
 
@@ -117,3 +118,8 @@ route(add, Destiantion, Gateway, Mask, Flag, NIC) ->
 
 route(del, Num) ->
     tables:del_route(Num).
+
+
+get_num_ip({A, B, C, D}) ->
+    Res = (A * math:pow(2, 24)) + (B * math:pow(2, 16)) + (C * math:pow(2, 8)) + D,
+    round(Res).
