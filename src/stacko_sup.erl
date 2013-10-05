@@ -30,6 +30,7 @@ init([]) ->
     tables:create_ip(),
     tables:create_arp(),
     tables:create_nic(),
+    tables:create_route(),
 
     SuperSpec = {one_for_one, 5, 5},
     IpSpec = {ip_sup,                    % id

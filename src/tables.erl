@@ -30,6 +30,10 @@
 -export([insert_ip/3]).
 -export([del_ip/1]).
 
+-export([create_route/0]).
+-export([insert_route/6]).
+-export([del_route/1]).
+
 
 
 %% nic tabe
@@ -86,3 +90,15 @@ del_ip(IP) ->
     ets:delete(ip_table, IP).
 
 
+%% route table
+%% index destination  gateway  mask  flag  nic
+create_route() ->
+    ets:new(route_table, [ordered_set,  public, named_table, public]).
+    
+
+insert_route(Index, Destiantion, Gateway, Mask, Flag, NIC) ->
+    ets:insert(route_table, [{Index, Destiantion, Gateway, Mask, Flag, NIC}]).
+
+
+del_route(Num) ->
+    ets:delete(route_table, Num).

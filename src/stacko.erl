@@ -21,6 +21,9 @@
 -export([conf_ip/3]).
 -export([mac_to_binary/1]).
 -export([get_ip_from_nic/1]).
+-export([route/1]).
+-export([route/2]).
+-export([route/6]).
 
 -export([test_arp/0]).
 
@@ -92,3 +95,25 @@ get_ip_from_nic(First, NicName) ->
 get_ip_from_nic(NicName) ->
     get_ip_from_nic(ets:first(ip_table), NicName).
 
+
+route('$end_of_table') ->
+    ok;
+route(First) when is_integer(First)  ->
+    Res = ets:lookup(route_table, First),
+    io:format("~w~n", [Res]),
+    route(ets:next(route_table, First));
+route(print) ->
+    route(ets:first(route_table)).
+
+
+route(add, Destiantion, Gateway, Mask, Flag, NIC) ->
+    case ets:last(route_table) of
+        '$end_of_table' ->
+            tables:insert_route(0, Destiantion, Gateway, Mask, Flag, NIC);
+        LastIndex ->
+            tables:insert_route(LastIndex + 1, Destiantion, Gateway, Mask, Flag, NIC)
+    end.
+
+
+route(del, Num) ->
+    tables:del_route(Num).
