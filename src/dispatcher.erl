@@ -44,16 +44,6 @@ handle_cast(Packet, StateName) ->
             arp:to_arp(Packet);
         ?TYPE_IP ->
             <<Version:4, _Head:68, Protocol:8, _Rest/binary>> = Data,
-            %% <<Version:4, HeadLen:4, _TOS:8, TotalLen:16/integer-unsigned-big,
-            %%   _ID:16, _Flg:3, FragOff:13/integer-unsigned-big,
-            %%   TTL:8, Protocol:8, _CRC:16,  _Rest/binary>> = Data,
-            %% io:format("====================== version: ~w ~n", [Version]),
-            %% io:format("====================== HeadLen: ~w ~n", [HeadLen]),
-            %% io:format("====================== TotalLen: ~w ~n", [TotalLen]),
-            %% io:format("====================== FragOff: ~w ~n", [FragOff]),
-            %% io:format("====================== TTL: ~w ~n", [TTL]),
-            %% io:format("====================== Protocol: ~w ~n", [Protocol]),
-
             case Version of
                 ?IPV4 ->
                     case Protocol of

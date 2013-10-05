@@ -25,6 +25,7 @@
 -export([route/2]).
 -export([route/6]).
 -export([get_num_ip/1]).
+-export([checksum/1]).
 
 -export([test_arp/0]).
 
@@ -123,3 +124,16 @@ route(del, Num) ->
 get_num_ip({A, B, C, D}) ->
     Res = (A * math:pow(2, 24)) + (B * math:pow(2, 16)) + (C * math:pow(2, 8)) + D,
     round(Res).
+
+
+checksum(Date) ->
+    16#FFFF - makesum(Date).
+    
+
+makesum(Data) ->
+    lists:foldl(fun compl/2, 0, [W || <<W:16>> <= Data]).
+
+
+compl(N) when N =< 16#FFFF -> N;
+compl(N) -> (N band 16#FFFF) + (N bsr 16).
+compl(N,S) -> compl(N+S).
