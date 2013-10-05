@@ -38,12 +38,35 @@ start_link(Name) ->
 
 
 handle_cast(Packet, StateName) ->
-    <<_DMAC:48, _SMAC:48, Type:16/integer-unsigned-big, _Rest/binary>> = Packet,
+    <<_DMAC:48, _SMAC:48, Type:16/integer-unsigned-big, Data/binary>> = Packet,
     case Type  of
         ?TYPE_ARP ->                      
             arp:to_arp(Packet);
-        ?TYPE_IP ->                      
-            ok;
+        ?TYPE_IP ->
+            <<Version:4, _Head:68, Protocol:8, _Rest/binary>> = Data,
+            %% <<Version:4, HeadLen:4, _TOS:8, TotalLen:16/integer-unsigned-big,
+            %%   _ID:16, _Flg:3, FragOff:13/integer-unsigned-big,
+            %%   TTL:8, Protocol:8, _CRC:16,  _Rest/binary>> = Data,
+            %% io:format("====================== version: ~w ~n", [Version]),
+            %% io:format("====================== HeadLen: ~w ~n", [HeadLen]),
+            %% io:format("====================== TotalLen: ~w ~n", [TotalLen]),
+            %% io:format("====================== FragOff: ~w ~n", [FragOff]),
+            %% io:format("====================== TTL: ~w ~n", [TTL]),
+            %% io:format("====================== Protocol: ~w ~n", [Protocol]),
+
+            case Version of
+                ?IPV4 ->
+                    case Protocol of
+                        ?PROT_ICMP ->
+                            icmp:to_icmp(Packet);
+                        ?PROT_TCP ->
+                            ok;
+                        _ ->
+                            ok
+                    end;
+                _ ->
+                    ok
+            end;
         _ ->
             ok
     end,

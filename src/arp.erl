@@ -183,5 +183,3 @@ refresh() ->
     First = ets:first(arp_table),
     Acc = tables:lookup_arp(First),
     refresh(First, Now, Acc).
-
-

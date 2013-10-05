@@ -27,3 +27,8 @@
 -define(ARP_TIMEOUT_SECOND, 300). 
 -define(ARP_REFRESH_TIME, 20000).
 
+-define(IPV4, 4).
+
+-define(PROT_ICMP, 1).
+-define(PROT_TCP, 6).
+

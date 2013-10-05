@@ -25,6 +25,8 @@
 -export([terminate/2]).
 -export([code_change/3]).
 
+-export([to_icmp/1]).
+
 
 
 init([]) ->
@@ -43,7 +45,9 @@ handle_call(_Request, _Rrom, _State) ->
     {noreply, null}.
 
 
-handle_cast(_Request, _State) ->
+handle_cast(Packet, _State) ->
+    Packet,
+    io:format("icmp get a packet: ~n"),
     {noreply, null}.
 
 
@@ -53,3 +57,7 @@ terminate(_Reason, _STate) ->
 
 code_change(_Oldv, _State, _Extra) ->
     {ok, null}.
+
+
+to_icmp(Packet) ->
+    gen_server:cast(icmp, Packet).
