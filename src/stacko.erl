@@ -15,6 +15,8 @@
 
 -module(stacko).
 
+-include("head.hrl").
+
 -export([nic_up/1]).
 -export([nic_down/1]).
 -export([arp/0]).
@@ -26,6 +28,8 @@
 -export([route/6]).
 -export([get_num_ip/1]).
 -export([checksum/1]).
+-export([make_ip_icmp_replay/4]).
+-export([cyc_inc_32/1]).
 
 -export([test_arp/0]).
 
@@ -137,3 +141,30 @@ makesum(Data) ->
 compl(N) when N =< 16#FFFF -> N;
 compl(N) -> (N band 16#FFFF) + (N bsr 16).
 compl(N,S) -> compl(N+S).
+
+
+make_ip_icmp_replay(SrcIP, DstIP, ID, ICMPPayload) ->
+    HeadLen4Byte = 5,
+    TotalLenByte = (HeadLen4Byte * 4) + byte_size(ICMPPayload),
+    {S1, S2, S3, S4} = SrcIP,
+    {D1, D2, D3, D4} = DstIP,
+
+    CRC = stacko:checksum(<<?IPV4:4, HeadLen4Byte:4, 0:8, TotalLenByte:16/integer-unsigned-big,
+                            ID:16/integer-unsigned-big, 0:3, 0:13/integer-unsigned-big,
+                            64:8, ?PROT_ICMP:8, 0:16/integer-unsigned-big,
+                            S1:8, S2:8, S3:8, S4:8,
+                            D1:8, D2:8, D3:8, D4:8>>),
+
+    <<?IPV4:4, HeadLen4Byte:4, 0:8, TotalLenByte:16/integer-unsigned-big,
+      ID:16/integer-unsigned-big, 0:3, 0:13/integer-unsigned-big,
+      64:8, ?PROT_ICMP:8, CRC:16/integer-unsigned-big,
+      S1:8, S2:8, S3:8, S4:8,
+      D1:8, D2:8, D3:8, D4:8>>.
+
+
+cyc_inc_32(Num) ->
+    if Num =:= 16#ffffffff ->
+            0;
+       true ->
+            Num + 1
+    end.

@@ -32,25 +32,25 @@
 
 
 init([]) ->
-    {ok, null}.
+    {ok, 0}.
 
 
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
     
 
-handle_info(_Request, _State) ->
-    {noreply, null}.
+handle_info(_Request, IPID) ->
+    {noreply, IPID}.
 
 
-handle_call(_Request, _Rrom, _State) ->
-    {noreply, null}.
+handle_call(_Request, _Rrom, IPID) ->
+    {noreply, IPID}.
 
 
-handle_cast(Packet, _State) ->
-    <<_DMAC:48, _SMAC:48, _Type:16/integer-unsigned-big,
+handle_cast(Packet, IPID) ->
+    <<_DMAC:48, _SMAC:48, _Type:16,
       _Version:4, HeadLen4Byte:4, _TOS:8, TotalLenByte:16/integer-unsigned-big,
-      _ID:16, _Flg:3, _FragOff:13/integer-unsigned-big,
+      _ID:16, _Flg:3, _FragOff:13,
       _TTL:8, _Protocol:8, _CRCIP:16,  
       SrcIP1:8, SrcIP2:8, SrcIP3:8, SrcIP4:8, 
       DstIP1:8, DstIP2:8, DstIP3:8, DstIP4:8, 
@@ -65,27 +65,36 @@ handle_cast(Packet, _State) ->
     case tables:is_my_ip(DstIPTuple) of
         true ->    
             <<ICMP:ICMPLen/bits, _Rest/binary>> = IPPayload,
-            <<Type:8, Code:8, _CRC:16/integer-unsigned-big, Date/binary>> = ICMP,
+            <<Type:8, Code:8, _CRC:16, ICMPMsg/binary>> = ICMP,
             CRC = stacko:checksum(ICMP),
+            io:format("====================== icmp msgsize: ~w~n", [byte_size(ICMPMsg)]),
 
             if CRC =:= 0, Type =:= 8, Code =:= 0 ->
-                    io:format("====================== request me! ~n");
+                    io:format("====================== ping me ~n"),
+                    RetCRC = stacko:checksum(<<0:8/integer-unsigned-big, 0:8/integer-unsigned-big, 
+                                               0:16/integer-unsigned-big,
+                                               ICMPMsg/bits>>),
+                    RetICMP = <<0:8/integer-unsigned-big, 0:8/integer-unsigned-big, 
+                                RetCRC:16/integer-unsigned-big,
+                                ICMPMsg/bits>>,
+                    RetIPPacket = stacko:make_ip_icmp_replay(DstIPTuple, SrcIPTuple, IPID, RetICMP),
+
+                    ok;
                true ->
                     ok
             end;
         false ->
             ok
     end,
+    {noreply, stacko:cyc_inc_32(IPID)}.
 
-    {noreply, null}.
 
-
-terminate(_Reason, _STate) ->
+terminate(_Reason, _IPID) ->
     ok.
 
 
-code_change(_Oldv, _State, _Extra) ->
-    {ok, null}.
+code_change(_Oldv, IPID, _Extra) ->
+    {ok, IPID}.
 
 
 to_icmp(Packet) ->
