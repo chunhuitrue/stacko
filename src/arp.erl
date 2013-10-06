@@ -186,31 +186,31 @@ refresh() ->
     refresh(First, Now, Acc).
 
 
-get_mac(_IP, _SelfIP, _NICName, 2) ->
-    null;
-get_mac(IP, SelfIP, NICName, 1) ->
-    arp_request(SelfIP, IP, NICName),
-    timer:sleep(50).
-get_mac(IP, SelfIP, NICName) ->
+get_mac(_IP, _SelfIP, _NICName, Num) when Num =< 0 ->
+    error;
+get_mac(IP, SelfIP, NICName, Num) when Num > 0 ->
     case arp_find(IP) of
         null ->
             arp_request(SelfIP, IP, NICName),
-            get_mac(IP, SelfIP, NICName, 1),
-            timer:sleep(50);
+            timer:sleep(50),
+            get_mac(IP, SelfIP, NICName, Num - 1);
         MAC ->
             MAC
     end.
+get_mac(IP, SelfIP, NICName) ->
+    get_mac(IP, SelfIP, NICName, 2).
 
 
 get_dst_mac(DstIP) ->
     case tables:find_route(DstIP) of
         {direct, NICName} ->
             [{_Name, NICIndex, _MAC, _HwType, _MTU}] = tables:lookup_nic(NICName),
-            NICIndex;
+            {get_mac(DstIP, stacko:get_ip_from_nic(NICName), NICName), NICIndex};
         {gateway, Gateway, NICName} ->
             [{_Name, NICIndex, _MAC, _HwType, _MTU}] = tables:lookup_nic(NICName),
-            {get_mac(Gateway, tables:get_ip_from_nic(NICName), NICName), NICIndex}
+            {get_mac(Gateway, stacko:get_ip_from_nic(NICName), NICName), NICIndex}
     end.
+
 
 
 

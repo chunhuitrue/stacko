@@ -48,7 +48,7 @@ handle_call(_Request, _Rrom, IPID) ->
 
 
 handle_cast(Packet, IPID) ->
-    <<DMAC:48/bits, SMAC:48/bits, _Type:16,
+    <<DMAC:48/bits, _SMAC:48/bits, _Type:16,
       _Version:4, HeadLen4Byte:4, _TOS:8, TotalLenByte:16/integer-unsigned-big,
       _ID:16, _Flg:3, _FragOff:13,
       _TTL:8, _Protocol:8, _CRCIP:16,  
@@ -82,9 +82,6 @@ handle_cast(Packet, IPID) ->
                             ok;
                         {DstMAC, NicIndex} ->
                             RetEthPacket = stacko:make_eth_packet(DMAC, DstMAC, ?TYPE_IP, RetIPPacket),
-                            nic_out:send(NicIndex, RetEthPacket);
-                        NicIndex ->
-                            RetEthPacket = stacko:make_eth_packet(DMAC, SMAC, ?TYPE_IP, RetIPPacket),
                             nic_out:send(NicIndex, RetEthPacket)
                    end;
                true ->
