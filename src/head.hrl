@@ -15,6 +15,7 @@
 
 -define(CONF_LOOP_TIME, 1000).
 
+-define(MINI_ETH_FRAME, 64).
 -define(TYPE_ARP, 16#0806).
 -define(TYPE_IP, 16#0800).
 -define(HW_TYPE_MAC, 1).

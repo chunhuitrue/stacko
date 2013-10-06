@@ -40,6 +40,7 @@ handle_cast({Index, Packet}, State) ->
     %% 需要处理非阻塞写当前没有buffer的错误，需要等待和再次尝试
     %% 只能在这里等待，不能再 .c 中等待，否则阻塞。
     Res = nif:nic_send(Index, Packet),
+    Res,
     %% io:format("send a packet ~w~n", [Res]),
     {noreply, State}.
 

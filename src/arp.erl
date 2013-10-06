@@ -29,6 +29,7 @@
 -export([to_arp/1]).
 -export([arp_request/3]).
 -export([arp_find/1]).
+-export([get_dst_mac/1]).
 -export([test_request/0]).
 
 
@@ -183,3 +184,33 @@ refresh() ->
     First = ets:first(arp_table),
     Acc = tables:lookup_arp(First),
     refresh(First, Now, Acc).
+
+
+get_mac(_IP, _SelfIP, _NICName, 2) ->
+    null;
+get_mac(IP, SelfIP, NICName, 1) ->
+    arp_request(SelfIP, IP, NICName),
+    timer:sleep(50).
+get_mac(IP, SelfIP, NICName) ->
+    case arp_find(IP) of
+        null ->
+            arp_request(SelfIP, IP, NICName),
+            get_mac(IP, SelfIP, NICName, 1),
+            timer:sleep(50);
+        MAC ->
+            MAC
+    end.
+
+
+get_dst_mac(DstIP) ->
+    case tables:find_route(DstIP) of
+        {direct, NICName} ->
+            [{_Name, NICIndex, _MAC, _HwType, _MTU}] = tables:lookup_nic(NICName),
+            NICIndex;
+        {gateway, Gateway, NICName} ->
+            [{_Name, NICIndex, _MAC, _HwType, _MTU}] = tables:lookup_nic(NICName),
+            {get_mac(Gateway, tables:get_ip_from_nic(NICName), NICName), NICIndex}
+    end.
+
+
+

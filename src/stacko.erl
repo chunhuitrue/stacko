@@ -30,6 +30,7 @@
 -export([checksum/1]).
 -export([make_ip_icmp_replay/4]).
 -export([cyc_inc_32/1]).
+-export([make_eth_packet/4]).
 
 -export([test_arp/0]).
 
@@ -159,7 +160,8 @@ make_ip_icmp_replay(SrcIP, DstIP, ID, ICMPPayload) ->
       ID:16/integer-unsigned-big, 0:3, 0:13/integer-unsigned-big,
       64:8, ?PROT_ICMP:8, CRC:16/integer-unsigned-big,
       S1:8, S2:8, S3:8, S4:8,
-      D1:8, D2:8, D3:8, D4:8>>.
+      D1:8, D2:8, D3:8, D4:8,
+      ICMPPayload/bits>>.
 
 
 cyc_inc_32(Num) ->
@@ -168,3 +170,19 @@ cyc_inc_32(Num) ->
        true ->
             Num + 1
     end.
+
+
+make_eth_packet(SrcMAC, DstMAC, Type, Payload) ->
+    Packet = <<DstMAC:48/bits, SrcMAC:48/bits, Type:16/integer-unsigned-big, 
+               Payload/bits>>,
+    PacketSize = byte_size(Packet),
+
+    if PacketSize < ?MINI_ETH_FRAME ->
+            PadSize = ?MINI_ETH_FRAME - PacketSize,
+            Pad = <<0:(PadSize * 8)>>,
+            <<Packet/bits, Pad/bits>>;
+       true ->
+            Packet
+    end.
+
+

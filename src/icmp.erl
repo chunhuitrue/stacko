@@ -48,7 +48,7 @@ handle_call(_Request, _Rrom, IPID) ->
 
 
 handle_cast(Packet, IPID) ->
-    <<_DMAC:48, _SMAC:48, _Type:16,
+    <<DMAC:48/bits, SMAC:48/bits, _Type:16,
       _Version:4, HeadLen4Byte:4, _TOS:8, TotalLenByte:16/integer-unsigned-big,
       _ID:16, _Flg:3, _FragOff:13,
       _TTL:8, _Protocol:8, _CRCIP:16,  
@@ -67,10 +67,8 @@ handle_cast(Packet, IPID) ->
             <<ICMP:ICMPLen/bits, _Rest/binary>> = IPPayload,
             <<Type:8, Code:8, _CRC:16, ICMPMsg/binary>> = ICMP,
             CRC = stacko:checksum(ICMP),
-            io:format("====================== icmp msgsize: ~w~n", [byte_size(ICMPMsg)]),
 
             if CRC =:= 0, Type =:= 8, Code =:= 0 ->
-                    io:format("====================== ping me ~n"),
                     RetCRC = stacko:checksum(<<0:8/integer-unsigned-big, 0:8/integer-unsigned-big, 
                                                0:16/integer-unsigned-big,
                                                ICMPMsg/bits>>),
@@ -79,7 +77,16 @@ handle_cast(Packet, IPID) ->
                                 ICMPMsg/bits>>,
                     RetIPPacket = stacko:make_ip_icmp_replay(DstIPTuple, SrcIPTuple, IPID, RetICMP),
 
-                    ok;
+                    case arp:get_dst_mac(SrcIPTuple) of
+                        {error, _} ->
+                            ok;
+                        {DstMAC, NicIndex} ->
+                            RetEthPacket = stacko:make_eth_packet(DMAC, DstMAC, ?TYPE_IP, RetIPPacket),
+                            nic_out:send(NicIndex, RetEthPacket);
+                        NicIndex ->
+                            RetEthPacket = stacko:make_eth_packet(DMAC, SMAC, ?TYPE_IP, RetIPPacket),
+                            nic_out:send(NicIndex, RetEthPacket)
+                   end;
                true ->
                     ok
             end;
