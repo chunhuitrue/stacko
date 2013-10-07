@@ -30,6 +30,7 @@
 -export([arp_request/3]).
 -export([arp_find/1]).
 -export([get_dst_mac/1]).
+-export([get_dst_mac2/1]).
 -export([test_request/0]).
 
 
@@ -208,7 +209,22 @@ get_dst_mac(DstIP) ->
             {get_mac(DstIP, stacko:get_ip_from_nic(NICName), NICName), NICIndex};
         {gateway, Gateway, NICName} ->
             [{_Name, NICIndex, _MAC, _HwType, _MTU}] = tables:lookup_nic(NICName),
-            {get_mac(Gateway, stacko:get_ip_from_nic(NICName), NICName), NICIndex}
+            {get_mac(Gateway, stacko:get_ip_from_nic(NICName), NICName), NICIndex};
+        noroute ->
+            {error, noroute}
+    end.
+
+
+get_dst_mac2(DstIP) ->
+    case tables:find_route(DstIP) of
+        {direct, NICName} ->
+            [{_Name, NICIndex, _MAC, _HwType, _MTU}] = tables:lookup_nic(NICName),
+            {get_mac(DstIP, stacko:get_ip_from_nic(NICName), NICName), NICName, NICIndex};
+        {gateway, Gateway, NICName} ->
+            [{_Name, NICIndex, _MAC, _HwType, _MTU}] = tables:lookup_nic(NICName),
+            {get_mac(Gateway, stacko:get_ip_from_nic(NICName), NICName), NICName, NICIndex};
+        noroute ->
+            {error, noroute}
     end.
 
 

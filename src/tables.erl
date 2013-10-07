@@ -15,6 +15,8 @@
 
 -module(tables).
 
+-export([create_tables/0]).
+
 -export([create_nic/0]).
 -export([lookup_nic/1]).
 -export([insert_nic/5]).
@@ -36,6 +38,14 @@
 -export([insert_route/6]).
 -export([del_route/1]).
 -export([find_route/1]).
+
+
+
+create_tables() ->
+    create_ip(),
+    create_arp(),
+    create_nic(),
+    create_route().
 
 
 

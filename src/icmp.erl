@@ -28,26 +28,29 @@
 -export([code_change/3]).
 
 -export([to_icmp/1]).
+-export([ping_pid/1]).
 
 
 
 init([]) ->
-    {ok, 0}.
+    {ok, {0, null}}.
 
 
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
     
 
-handle_info(_Request, IPID) ->
-    {noreply, IPID}.
+handle_info(_Request, State) ->
+    {noreply, State}.
 
 
-handle_call(_Request, _Rrom, IPID) ->
-    {noreply, IPID}.
+handle_call(_Request, _Rrom, State) ->
+    {noreply, State}.
 
 
-handle_cast(Packet, IPID) ->
+handle_cast(PingPID, {IPID, _}) when is_pid(PingPID) ->
+    {noreply, {IPID, PingPID}};
+handle_cast(Packet, {IPID, PingPID}) ->
     <<DMAC:48/bits, _SMAC:48/bits, _Type:16,
       _Version:4, HeadLen4Byte:4, _TOS:8, TotalLenByte:16/integer-unsigned-big,
       _ID:16, _Flg:3, _FragOff:13,
@@ -84,22 +87,32 @@ handle_cast(Packet, IPID) ->
                             RetEthPacket = stacko:make_eth_packet(DMAC, DstMAC, ?TYPE_IP, RetIPPacket),
                             nic_out:send(NicIndex, RetEthPacket)
                    end;
+               CRC =:= 0, Type =:= 0, Code =:= 0 ->
+                    to_ping(PingPID, Packet);
                true ->
                     ok
             end;
         false ->
             ok
     end,
-    {noreply, stacko:cyc_inc_32(IPID)}.
+    {noreply, {stacko:cyc_inc_32(IPID), PingPID}}.
 
 
-terminate(_Reason, _IPID) ->
+terminate(_Reason, _State) ->
     ok.
 
 
-code_change(_Oldv, IPID, _Extra) ->
-    {ok, IPID}.
+code_change(_Oldv, State, _Extra) ->
+    {ok, State}.
 
 
 to_icmp(Packet) ->
     gen_server:cast(icmp, Packet).
+
+
+ping_pid(Pid) ->
+    gen_server:cast(icmp, Pid).
+
+
+to_ping(PingPID, Packet) ->
+    PingPID ! {pang, Packet}.
