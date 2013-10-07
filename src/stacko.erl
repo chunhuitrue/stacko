@@ -205,7 +205,7 @@ make_eth_packet(SrcMAC, DstMAC, Type, Payload) ->
 make_icmp_ping_packet(SeqNum) ->
     TimeStamp = milli_second(),
     IcmpID = 2013,
-    Pad = <<0:8/unit:52>>,
+    Pad = <<0:8/unit:54>>,
 
     CRC = checksum(<<8:8, 0:8, 0:16/integer-unsigned-big,
                      IcmpID:16, SeqNum:16/integer-unsigned-big,
@@ -263,7 +263,7 @@ recv_pang(ReqIcmpSeq) ->
 
             if IsMy =:= true, CRC =:= 0, Type =:=0, Code =:= 0, ReqIcmpSeq =:= IcmpSeq ->
                     io:format("~w bytes from ~w: icmp_seq=~w ttl=~w time=~wms~n", 
-                              [ICMPLen, SrcIP, IcmpSeq, TTL, UseTime]);
+                              [ICMPLen div 8, SrcIP, IcmpSeq, TTL, UseTime]);
                true ->
                     ok
             end,

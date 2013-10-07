@@ -193,7 +193,7 @@ get_mac(IP, SelfIP, NICName, Num) when Num > 0 ->
     case arp_find(IP) of
         null ->
             arp_request(SelfIP, IP, NICName),
-            timer:sleep(10),
+            timer:sleep(50),
             get_mac(IP, SelfIP, NICName, Num - 1);
         MAC ->
             MAC
