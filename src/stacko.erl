@@ -213,7 +213,7 @@ make_icmp_ping_packet(SeqNum) ->
                      Pad/bits>>),
     <<8:8, 0:8, CRC:16/integer-unsigned-big,
       IcmpID:16/integer-unsigned-big, SeqNum:16/integer-unsigned-big,
-      TimeStamp:32/integer-unsigned-big,
+      TimeStamp:16/integer-unsigned-big,
       Pad/bits>>.
 
 
