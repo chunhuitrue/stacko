@@ -32,4 +32,5 @@
 
 -define(PROT_ICMP, 1).
 -define(PROT_TCP, 6).
+-define(PROT_UDP, 17).
 

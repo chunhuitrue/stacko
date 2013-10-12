@@ -38,25 +38,12 @@ start_link(Name) ->
 
 
 handle_cast(Packet, StateName) ->
-    <<_DMAC:48, _SMAC:48, Type:16/integer-unsigned-big, Data/binary>> = Packet,
+    <<_DMAC:48, _SMAC:48, Type:16/integer-unsigned-big, _Payload/binary>> = Packet,
     case Type  of
         ?TYPE_ARP ->                      
             arp:to_arp(Packet);
         ?TYPE_IP ->
-            <<Version:4, _Head:68, Protocol:8, _Rest/binary>> = Data,
-            case Version of
-                ?IPV4 ->
-                    case Protocol of
-                        ?PROT_ICMP ->
-                            icmp:to_icmp(Packet);
-                        ?PROT_TCP ->
-                            ok;
-                        _ ->
-                            ok
-                    end;
-                _ ->
-                    ok
-            end;
+            dispatch_ip(Packet);
         _ ->
             ok
     end,
@@ -81,3 +68,18 @@ code_change(_Oldv, StateName, _Extra) ->
 
 to_dispatcher(DispName, Packet) ->
     gen_server:cast(DispName, Packet).
+
+
+dispatch_ip(Packet) ->
+    <<_DMAC:48, _SMAC:48, _Type:16/integer-unsigned-big, 
+      Version:4, _Head:68, Protocol:8, _Rest/binary>> = Packet,
+
+    if Version =:= ?IPV4, Protocol =:= ?PROT_ICMP ->
+            icmp:to_icmp(Packet);
+       Version =:= ?IPV4, Protocol =:= ?PROT_TCP ->
+            ok;
+       Version =:= ?IPV4, Protocol =:= ?PROT_UDP  ->
+            ok;
+       true ->
+            ok
+    end.
