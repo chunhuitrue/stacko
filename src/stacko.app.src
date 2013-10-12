@@ -1,6 +1,6 @@
 {application, stacko,
  [
-  {description, "erlang multi core multi process tcp ip stack"},
+  {description, "erlang multi core, multi process, tcp ip stack"},
   {vsn, "0.01"},
   {registered, []},
   {applications, [
