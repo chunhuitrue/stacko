@@ -21,6 +21,8 @@
 -export([start_link/0]).
 -export([init/1]).
 
+-export([start_nic/1]).
+
 
 start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
@@ -29,17 +31,55 @@ start_link() ->
 init([]) ->
     tables:create_tables(),
 
-    SuperSpec = {one_for_one, 5, 5},
-    IpSpec = {ip_sup,                    % id
-               {ip_sup, start_link, []}, % {Module, Function, Arguments}
+    ConfSpec = {conf,                   % id
+                {conf, start_link, []}, % {Module, Function, Arguments}
+                permanent,              % Restart
+                brutal_kill,            % Shutdown
+                worker,                 % Type
+                [conf]},                % ModuleList
+
+    IcmpSpec = {icmp,                  % id
+               {icmp, start_link, []}, % {Module, Function, Arguments}
+               permanent,              % Restart
+               brutal_kill,            % Shutdown
+               worker,                 % Type
+               [icmp]},                % ModuleList
+
+    ArpSpec = {arp,                      % id
+               {arp, start_link, [arp]}, % {Module, Function, Arguments}
                permanent,                % Restart
                brutal_kill,              % Shutdown
-               supervisor,               % Type
-               [ip_sup]},                % ModuleList
-    ConfSpec = {conf,                          % id
-                {conf, start_link, []},        % {Module, Function, Arguments}
-                permanent,                     % Restart
-                brutal_kill,                   % Shutdown
-                worker,                        % Type
-                [conf]},                       % ModuleList
-    {ok, {SuperSpec, [IpSpec, ConfSpec]}}.
+               worker,                   % Type
+               [arp]},                   % ModuleList
+
+    DispatcherSpec = {dispatcher_sup,                   % id
+                      {dispatcher_sup, start_link, []}, % {Module, Function, Arguments}
+                      permanent,                        % Restart
+                      brutal_kill,                      % Shutdown
+                      supervisor,                       % Type
+                      [dispatcher_sup]},                % ModuleList
+
+    SuperSpec = {one_for_one, 5, 5},
+    {ok, {SuperSpec, [ConfSpec, ArpSpec, IcmpSpec, DispatcherSpec]}}.
+
+
+start_nic(DispatcherNum) ->
+    ReadSpec = {nicread_gen,                                           % id
+                {nic_in, start_link, [nicread_gen, DispatcherNum]},    % {Module, Function, Arguments}
+                permanent,                                             % Restart
+                brutal_kill,                                           % Shutdown
+                worker,                                                % Type
+                [nic_in]},                                             % ModuleList
+    supervisor:start_child(stacko_sup, ReadSpec),
+
+    WriteSpec = {nicwrite,                          % id
+                 {nic_out, start_link, [nicwrite]}, % {Module, Function, Arguments}
+                 permanent,                         % Restart
+                 brutal_kill,                       % Shutdown
+                 worker,                            % Type
+                 [nic_out]},                        % ModuleList
+    supervisor:start_child(stacko_sup, WriteSpec).
+
+
+
+

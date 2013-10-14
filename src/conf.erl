@@ -66,7 +66,7 @@ load_conf() ->
 
     %% 10 dispatchers
     Dispatcher_num = 3,
-    ip_sup:start_dispatcher(Dispatcher_num - 1),
+    dispatcher_sup:start_dispatcher(Dispatcher_num - 1),
 
     stacko:conf_ip({192, 168, 1, 9}, {255, 255, 255, 0}, p2p1),
     stacko:conf_ip({192, 168, 1, 8}, {255, 255, 255, 0}, p2p1),
