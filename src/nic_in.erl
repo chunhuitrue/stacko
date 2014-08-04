@@ -15,45 +15,14 @@
 
 -module(nic_in).
 
--behaviour(gen_server).
--export([init/1]).
--export([start_link/2]).
--export([handle_call/3]).
--export([handle_cast/2]).
--export([handle_info/2]).
--export([terminate/2]).
--export([code_change/3]).
-
+-export([start_link/1]).
 -export([nic_read/1]).
 
 
-init([DispatcherNum]) ->
-    register(nicread, spawn_link(nic_in, nic_read, [DispatcherNum])),
-    {ok, null}.
-
-
-start_link(Name, DispatcherNum) ->
-    gen_server:start_link({local, Name}, ?MODULE, [DispatcherNum], []).
-
-
-handle_cast(_Request, _State) ->
-    {noreply, null}.
-
-
-handle_info(_Request, _State) ->
-    {noreply, null}.
-
-
-handle_call(_Request, _Rrom, _State) ->
-    {noreply, null}.
-
-
-terminate(_Reason, _State) ->
-    ok.
-
-
-code_change(_Oldv, _State, _Extra) ->
-    {ok, null}.
+start_link(DispatcherNum) ->
+    Pid = spawn_link(?MODULE, nic_read, [DispatcherNum]),
+    register(nicread, Pid),
+    {ok, Pid}.
 
 
 nic_read(DispatcherNum) ->

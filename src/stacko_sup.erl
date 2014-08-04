@@ -64,12 +64,12 @@ init([]) ->
 
 
 start_nic(DispatcherNum) ->
-    ReadSpec = {nicread_gen,                                           % id
-                {nic_in, start_link, [nicread_gen, DispatcherNum]},    % {Module, Function, Arguments}
-                permanent,                                             % Restart
-                brutal_kill,                                           % Shutdown
-                worker,                                                % Type
-                [nic_in]},                                             % ModuleList
+    ReadSpec = {nicread_gen,                              % id
+                {nic_in, start_link, [DispatcherNum]},    % {Module, Function, Arguments}
+                permanent,                                % Restart
+                brutal_kill,                              % Shutdown
+                worker,                                   % Type
+                [nic_in]},                                % ModuleList
     supervisor:start_child(stacko_sup, ReadSpec),
 
     WriteSpec = {nicwrite,                          % id
