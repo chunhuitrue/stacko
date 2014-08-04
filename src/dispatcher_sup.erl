@@ -38,17 +38,15 @@ start_dispatcher(N) ->
     stacko_sup:start_nic(N).
 
 
-dispatcher(N) ->
-    if N >= 0 ->
-            Name = list_to_atom(atom_to_list(dispatcher) ++ integer_to_list(N)),
-            ChildSpec = {Name,                             % id
-                         {dispatcher, start_link, [Name]}, % {Module, Function, Arguments}
-                         permanent,                        % Restart
-                         brutal_kill,                      % Shutdown
-                         worker,                           % Type
-                         [dispatcher]},                    % ModuleList
-            supervisor:start_child(dispatcher_sup, ChildSpec),
-            dispatcher(N - 1);
-       N < 0 ->
-            ok
-    end.
+dispatcher(Num) ->
+    lists:map(fun(Spec) -> supervisor:start_child(dispatcher_sup, Spec) end, 
+              [{Name,                             % id
+                {dispatcher, start_link, [Name]}, % {Module, Function, Arguments}
+                permanent,                        % Restart
+                brutal_kill,                      % Shutdown
+                worker,                           % Type
+                [dispatcher]}                    % ModuleList
+               || N <- lists:seq(0, Num), 
+                  Name <- [list_to_atom(atom_to_list(dispatcher) ++ integer_to_list(N))]]).
+    
+                    
