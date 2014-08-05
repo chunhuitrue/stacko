@@ -33,12 +33,12 @@ init([]) ->
     {ok, {SuperSpec, []}}.
 
 
-start_dispatcher(N) ->
-    dispatcher(N),
-    stacko_sup:start_nic(N).
+start_dispatcher(MaxIndex) ->
+    dispatcher(MaxIndex),
+    stacko_sup:start_nic(MaxIndex).
 
 
-dispatcher(Num) ->
+dispatcher(MaxIndex) ->
     lists:map(fun(Spec) -> supervisor:start_child(dispatcher_sup, Spec) end, 
               [{Name,                             % id
                 {dispatcher, start_link, [Name]}, % {Module, Function, Arguments}
@@ -46,7 +46,7 @@ dispatcher(Num) ->
                 brutal_kill,                      % Shutdown
                 worker,                           % Type
                 [dispatcher]}                    % ModuleList
-               || N <- lists:seq(0, Num), 
+               || N <- lists:seq(0, MaxIndex), 
                   Name <- [list_to_atom(atom_to_list(dispatcher) ++ integer_to_list(N))]]).
     
                     

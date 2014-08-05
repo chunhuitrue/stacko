@@ -19,17 +19,17 @@
 -export([nic_read/1]).
 
 
-start_link(DispatcherNum) ->
-    Pid = spawn_link(?MODULE, nic_read, [DispatcherNum]),
+start_link(MaxIndex) ->
+    Pid = spawn_link(?MODULE, nic_read, [MaxIndex]),
     register(nicread, Pid),
     {ok, Pid}.
 
 
-nic_read(DispatcherNum) ->
-    nic_in(DispatcherNum, DispatcherNum).
-nic_in(DispatcherNum, Acc) when Acc < 0 ->
-    nic_in(DispatcherNum, DispatcherNum);
-nic_in(DispatcherNum, Acc) when Acc >= 0 ->
+nic_read(MaxIndex) ->
+    nic_in(MaxIndex, MaxIndex).
+nic_in(MaxIndex, Acc) when Acc < 0 ->
+    nic_in(MaxIndex, MaxIndex);
+nic_in(MaxIndex, Acc) when Acc >= 0 ->
     case nif:nic_recv() of
         {error, eagain} ->
             timer:sleep(5);
@@ -41,4 +41,4 @@ nic_in(DispatcherNum, Acc) when Acc >= 0 ->
             DispName = list_to_atom(atom_to_list(dispatcher) ++ integer_to_list(Acc)),
             dispatcher:to_dispatcher(DispName, Packet)
     end,
-    nic_in(DispatcherNum, Acc - 1).
+    nic_in(MaxIndex, Acc - 1).
