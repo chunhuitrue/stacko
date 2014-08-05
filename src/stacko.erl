@@ -28,7 +28,6 @@
 -export([route/1]).
 -export([route/2]).
 -export([route/6]).
-
 -export([ping/1]).
 
 -export([mac_to_binary/1]).
@@ -267,71 +266,9 @@ make_ip_packet(SrcIP, DstIP, ID, Flags, Protocol, Payload) ->
       Payload/bits>>.
 
 
-recv_pang(ReqIcmpSeq) ->
-    receive
-        {pang, Packet} ->
-            <<_Dmac:48, _Smac:48, _Type:16,
-              _Version:4, HeadLen4Byte:4, _TOS:8, TotalLenByte:16/integer-unsigned-big,
-              _IpID:16, _Flg:3, _FragOff:13,
-              TTL:8, _Protocol:8, _CRCIP:16,  
-              Sip1:8, Sip2:8, Sip3:8, Sip4:8, 
-              Dip1:8, Dip2:8, Dip3:8, Dip4:8, 
-              IpPayload/binary>> = Packet,
-
-            SrcIP = {Sip1, Sip2, Sip3, Sip4},
-            DstIP = {Dip1, Dip2, Dip3, Dip4},
-            HeadLen = HeadLen4Byte * 32,
-            TotalLen = TotalLenByte * 8,
-            ICMPLen = TotalLen - HeadLen,
-            IsMy = tables:is_my_ip(DstIP),
-            <<IcmpPack:ICMPLen/bits, _Rest/binary>> = IpPayload,
-            <<Type:8, Code:8, _CRC:16, 
-              _IcmpID:16, IcmpSeq:16/integer-unsigned-big,
-              Timestamp:16/integer-unsigned-big, _Pad/binary>> = IcmpPack,
-            CRC = stacko:checksum(IcmpPack),
-            UseTime = milli_second() - Timestamp,
-
-            if IsMy =:= true, CRC =:= 0, Type =:=0, Code =:= 0, ReqIcmpSeq =:= IcmpSeq ->
-                    io:format("~w bytes from ~w: icmp_seq=~w ttl=~w time=~wms~n", 
-                              [ICMPLen div 8, SrcIP, IcmpSeq, TTL, UseTime]);
-               true ->
-                    ok
-            end,
-            timer:sleep(1000)
-    after 1000 ->
-            io:format("Request timeout for icmp_seq ~w~n", [ReqIcmpSeq])
-    end.
-
-
-ping_loop(0, _IP, _IcmpSeq, _IpID) ->
-    ok;
-ping_loop(Num, IP, IcmpSeq, IpID) ->
-    case arp:get_dst_mac2(IP) of
-        {error, noroute} ->
-            io:format("No route to host~n"),
-            timer:sleep(1000),
-            ping_loop(Num - 1, IP, cyc_inc_16(IcmpSeq), cyc_inc_32(IpID));
-        {error, _, _} ->
-            io:format("Host is down~n"),
-            timer:sleep(1000),
-            ping_loop(Num - 1, IP, cyc_inc_16(IcmpSeq), cyc_inc_32(IpID));
-        {DstMAC, NicName, NicIndex} ->
-            SrcMAC = nic_mac(NicName),
-            SrcIP = get_ip_from_nic(NicName),
-
-            IcmpPack = make_icmp_ping_packet(IcmpSeq),
-            IpPack = make_ip_packet(SrcIP, IP, IpID, 0, ?PROT_ICMP, IcmpPack),
-            EthPack = make_eth_packet(SrcMAC, DstMAC, ?TYPE_IP, IpPack),
-            nic_out:send(NicIndex, EthPack),
-
-            recv_pang(IcmpSeq),
-            ping_loop(Num - 1, IP, cyc_inc_16(IcmpSeq), cyc_inc_32(IpID))
-    end.
-
-
 ping(IP) ->
     icmp:ping_pid(self()),
-    ping_loop(5, IP, 0, 0).
+    icmp:ping_loop(5, IP, 0, 0).
 
 
 nic_mac(NicName) ->
