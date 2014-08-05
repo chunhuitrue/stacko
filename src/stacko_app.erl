@@ -22,8 +22,13 @@
 
 
 start(_StartType, _StartArgs) ->
-    stacko_sup:start_link().
+    {ok, Pid} = stacko_sup:start_link(),
+    tables:create_tables(),
+    stacko:load_conf(),
+    {ok, Pid}.
 
 
 stop(_State) ->
-    ok.
+    Ret = stacko:release_conf(),
+    io:format("release_conf: ~p~n", [Ret]).
+

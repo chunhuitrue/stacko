@@ -29,15 +29,6 @@ start_link() ->
     
 
 init([]) ->
-    tables:create_tables(),
-
-    ConfSpec = {conf,                   % id
-                {conf, start_link, []}, % {Module, Function, Arguments}
-                permanent,              % Restart
-                brutal_kill,            % Shutdown
-                worker,                 % Type
-                [conf]},                % ModuleList
-
     IcmpSpec = {icmp,                  % id
                {icmp, start_link, []}, % {Module, Function, Arguments}
                permanent,              % Restart
@@ -60,7 +51,7 @@ init([]) ->
                       [dispatcher_sup]},                % ModuleList
 
     SuperSpec = {one_for_one, 5, 5},
-    {ok, {SuperSpec, [ConfSpec, ArpSpec, IcmpSpec, DispatcherSpec]}}.
+    {ok, {SuperSpec, [ArpSpec, IcmpSpec, DispatcherSpec]}}.
 
 
 start_nic(DispatcherNum) ->

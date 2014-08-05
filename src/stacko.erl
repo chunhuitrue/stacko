@@ -17,15 +17,22 @@
 
 -include("head.hrl").
 
+-export([dispatcher_num/1]).
+-export([load_conf/0]).
+-export([release_conf/0]).
+
 -export([nic_up/1]).
 -export([nic_down/1]).
 -export([arp/0]).
 -export([conf_ip/3]).
--export([mac_to_binary/1]).
--export([get_ip_from_nic/1]).
 -export([route/1]).
 -export([route/2]).
 -export([route/6]).
+
+-export([ping/1]).
+
+-export([mac_to_binary/1]).
+-export([get_ip_from_nic/1]).
 -export([get_num_ip/1]).
 -export([checksum/1]).
 -export([make_ip_icmp_replay/4]).
@@ -33,7 +40,6 @@
 -export([cyc_inc_16/1]).
 -export([make_eth_packet/4]).
 -export([make_icmp_ping_packet/1]).
--export([ping/1]).
 -export([make_ip_packet/6]).
 -export([nic_mac/1]).
 -export([milli_second/0]).
@@ -43,18 +49,42 @@
 -export([test_no_ping/0]).
 
 
+dispatcher_num(Num) ->
+    dispatcher_sup:start_dispatcher(Num - 1).
+
+
+load_conf() ->
+    dispatcher_num(3),    
+
+    nic_up(p2p1),
+    nic_up(p7p1),
+
+    conf_ip({192, 168, 1, 9}, {255, 255, 255, 0}, p2p1),
+    conf_ip({192, 168, 1, 8}, {255, 255, 255, 0}, p2p1),
+    conf_ip({192, 168, 1, 7}, {255, 255, 255, 0}, p2p1),
+    conf_ip({192, 168, 1, 6}, {255, 255, 255, 0}, p2p1),
+    conf_ip({10, 10, 1, 9}, {255, 255, 255, 0}, p7p1),
+    conf_ip({10, 10, 1, 8}, {255, 255, 255, 0}, p7p1),
+    
+    route(add, {0, 0, 0, 0}, {192, 168, 1, 1}, {0, 0, 0, 0}, [$G], p2p1),
+    route(add, {10, 10, 1, 0}, null, {255, 255, 255, 0}, [], p7p1),
+    route(add, {192, 168, 1, 0}, null, {255, 255, 255, 0}, [], p2p1).
+
+
+release_conf() ->
+    nic_down(p2p1),
+    nic_down(p7p1).
+
+
 nic_up(NicName) ->
-    case nif:nic_up(NicName) of
-        {error, Resion} ->
-            {error, Resion};
-        {Index, MAC, HwType, MTU}  ->
-            tables:insert_nic(NicName, Index, MAC, HwType, MTU)
-    end.
+    {Index, MAC, HwType, MTU} =  nif:nic_up(NicName),
+    tables:insert_nic(NicName, Index, MAC, HwType, MTU).
 
 
 nic_down(NicName) ->
-    nif:nic_down(NicName),
-    tables:del_nic(NicName).
+    ok = nif:nic_down(NicName),
+    true = tables:del_nic(NicName),
+    ok.
 
 
 arp('$end_of_table') ->
