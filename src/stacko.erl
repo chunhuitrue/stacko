@@ -34,11 +34,9 @@
 -export([get_ip_from_nic/1]).
 -export([get_num_ip/1]).
 -export([checksum/1]).
--export([make_ip_icmp_replay/4]).
 -export([cyc_inc_32/1]).
 -export([cyc_inc_16/1]).
 -export([make_eth_packet/4]).
--export([make_icmp_ping_packet/1]).
 -export([make_ip_packet/6]).
 -export([nic_mac/1]).
 -export([milli_second/0]).
@@ -181,26 +179,6 @@ compl(N) -> (N band 16#FFFF) + (N bsr 16).
 compl(N,S) -> compl(N+S).
 
 
-make_ip_icmp_replay(SrcIP, DstIP, ID, ICMPPayload) ->
-    HeadLen4Byte = 5,
-    TotalLenByte = (HeadLen4Byte * 4) + byte_size(ICMPPayload),
-    {S1, S2, S3, S4} = SrcIP,
-    {D1, D2, D3, D4} = DstIP,
-
-    CRC = stacko:checksum(<<?IPV4:4, HeadLen4Byte:4, 0:8, TotalLenByte:16/integer-unsigned-big,
-                            ID:16/integer-unsigned-big, 0:3, 0:13/integer-unsigned-big,
-                            64:8, ?PROT_ICMP:8, 0:16/integer-unsigned-big,
-                            S1:8, S2:8, S3:8, S4:8,
-                            D1:8, D2:8, D3:8, D4:8>>),
-
-    <<?IPV4:4, HeadLen4Byte:4, 0:8, TotalLenByte:16/integer-unsigned-big,
-      ID:16/integer-unsigned-big, 0:3, 0:13/integer-unsigned-big,
-      64:8, ?PROT_ICMP:8, CRC:16/integer-unsigned-big,
-      S1:8, S2:8, S3:8, S4:8,
-      D1:8, D2:8, D3:8, D4:8,
-      ICMPPayload/bits>>.
-
-
 cyc_inc_32(Num) ->
     if Num =:= 16#ffffffff ->
             0;
@@ -229,22 +207,6 @@ make_eth_packet(SrcMAC, DstMAC, Type, Payload) ->
        true ->
             Packet
     end.
-
-
-make_icmp_ping_packet(SeqNum) ->
-    TimeStamp = milli_second(),
-    IcmpID = 2013,
-    Pad = <<0:8/unit:54>>,
-
-    CRC = checksum(<<8:8, 0:8, 0:16/integer-unsigned-big,
-                     IcmpID:16, SeqNum:16/integer-unsigned-big,
-                     TimeStamp:32/integer-unsigned-big,
-                     Pad/bits>>),
-    <<8:8, 0:8, CRC:16/integer-unsigned-big,
-      IcmpID:16/integer-unsigned-big, SeqNum:16/integer-unsigned-big,
-      TimeStamp:16/integer-unsigned-big,
-      Pad/bits>>.
-
 
 
 make_ip_packet(SrcIP, DstIP, ID, Flags, Protocol, Payload) ->

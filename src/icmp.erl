@@ -32,7 +32,6 @@
 -export([ping_loop/4]).
 
 
-
 init([]) ->
     {ok, {0, null}}.
 
@@ -79,7 +78,7 @@ handle_cast(Packet, {IPID, PingPID}) ->
                     RetICMP = <<0:8/integer-unsigned-big, 0:8/integer-unsigned-big, 
                                 RetCRC:16/integer-unsigned-big,
                                 ICMPMsg/bits>>,
-                    RetIPPacket = stacko:make_ip_icmp_replay(DstIPTuple, SrcIPTuple, IPID, RetICMP),
+                    RetIPPacket = make_ip_icmp_replay(DstIPTuple, SrcIPTuple, IPID, RetICMP),
 
                     case arp:get_dst_mac(SrcIPTuple) of
                         {error, _} ->
@@ -117,6 +116,41 @@ ping_pid(Pid) ->
 
 to_ping(PingPID, Packet) ->
     PingPID ! {pang, Packet}.
+
+
+make_icmp_ping_packet(SeqNum) ->
+    TimeStamp = stacko:milli_second(),
+    IcmpID = 2013,
+    Pad = <<0:8/unit:54>>,
+
+    CRC = stacko:checksum(<<8:8, 0:8, 0:16/integer-unsigned-big,
+                     IcmpID:16, SeqNum:16/integer-unsigned-big,
+                     TimeStamp:32/integer-unsigned-big,
+                     Pad/bits>>),
+    <<8:8, 0:8, CRC:16/integer-unsigned-big,
+      IcmpID:16/integer-unsigned-big, SeqNum:16/integer-unsigned-big,
+      TimeStamp:16/integer-unsigned-big,
+      Pad/bits>>.
+
+
+make_ip_icmp_replay(SrcIP, DstIP, ID, ICMPPayload) ->
+    HeadLen4Byte = 5,
+    TotalLenByte = (HeadLen4Byte * 4) + byte_size(ICMPPayload),
+    {S1, S2, S3, S4} = SrcIP,
+    {D1, D2, D3, D4} = DstIP,
+
+    CRC = stacko:checksum(<<?IPV4:4, HeadLen4Byte:4, 0:8, TotalLenByte:16/integer-unsigned-big,
+                            ID:16/integer-unsigned-big, 0:3, 0:13/integer-unsigned-big,
+                            64:8, ?PROT_ICMP:8, 0:16/integer-unsigned-big,
+                            S1:8, S2:8, S3:8, S4:8,
+                            D1:8, D2:8, D3:8, D4:8>>),
+
+    <<?IPV4:4, HeadLen4Byte:4, 0:8, TotalLenByte:16/integer-unsigned-big,
+      ID:16/integer-unsigned-big, 0:3, 0:13/integer-unsigned-big,
+      64:8, ?PROT_ICMP:8, CRC:16/integer-unsigned-big,
+      S1:8, S2:8, S3:8, S4:8,
+      D1:8, D2:8, D3:8, D4:8,
+      ICMPPayload/bits>>.
 
 
 recv_pang(ReqIcmpSeq) ->
@@ -171,7 +205,7 @@ ping_loop(Num, IP, IcmpSeq, IpID) ->
             SrcMAC = stacko:nic_mac(NicName),
             SrcIP = stacko:get_ip_from_nic(NicName),
 
-            IcmpPack = stacko:make_icmp_ping_packet(IcmpSeq),
+            IcmpPack = make_icmp_ping_packet(IcmpSeq),
             IpPack = stacko:make_ip_packet(SrcIP, IP, IpID, 0, ?PROT_ICMP, IcmpPack),
             EthPack = stacko:make_eth_packet(SrcMAC, DstMAC, ?TYPE_IP, IpPack),
             nic_out:send(NicIndex, EthPack),
