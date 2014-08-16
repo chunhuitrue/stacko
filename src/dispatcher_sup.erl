@@ -29,8 +29,7 @@ start_link() ->
 
 
 init([]) ->
-    SuperSpec = {one_for_one, 5, 5},
-    {ok, {SuperSpec, []}}.
+    {ok, {{one_for_one, 5, 5}, []}}.
 
 
 start_dispatcher(MaxIndex) ->

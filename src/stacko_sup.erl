@@ -29,6 +29,13 @@ start_link() ->
     
 
 init([]) ->
+    DispatcherSpec = {dispatcher_sup,                   % id
+                      {dispatcher_sup, start_link, []}, % {Module, Function, Arguments}
+                      permanent,                        % Restart
+                      brutal_kill,                      % Shutdown
+                      supervisor,                       % Type
+                      [dispatcher_sup]},                % ModuleList
+
     IcmpSpec = {icmp,                  % id
                {icmp, start_link, []}, % {Module, Function, Arguments}
                permanent,              % Restart
@@ -43,15 +50,21 @@ init([]) ->
                worker,                   % Type
                [arp]},                   % ModuleList
 
-    DispatcherSpec = {dispatcher_sup,                   % id
-                      {dispatcher_sup, start_link, []}, % {Module, Function, Arguments}
-                      permanent,                        % Restart
-                      brutal_kill,                      % Shutdown
-                      supervisor,                       % Type
-                      [dispatcher_sup]},                % ModuleList
+    TcpListenSpec = {tcp_listen,             
+                     {tcp_listen, start_link, []},
+                     permanent,  
+                     brutal_kill,       
+                     worker,
+                     [tcp_listen]}, 
 
-    SuperSpec = {one_for_one, 5, 5},
-    {ok, {SuperSpec, [ArpSpec, IcmpSpec, DispatcherSpec]}}.
+    TcpSpec = {tcp_sup,             
+               {tcp_sup, start_link, []},
+               permanent,         
+               brutal_kill,       
+               supervisor,        
+               [tcp_sup]}, 
+
+    {ok, {{one_for_one, 5, 5}, [DispatcherSpec, ArpSpec, IcmpSpec, TcpListenSpec, TcpSpec]}}.
 
 
 start_nic(DispatcherNum) ->
