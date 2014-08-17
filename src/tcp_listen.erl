@@ -38,11 +38,15 @@ handle_cast(_Request, _State) ->
     {noreply, null}.
 
 
-handle_call(_Request, _Rrom, _State) ->
-    {noreply, null}.
+handle_call({listen, {ListenPort, Backlog, UserPid}}, _From, _State) ->
+    io:format("tcp_listen start listen. Port: ~p, Pid: ~p~n", [ListenPort, UserPid]),
+    erlang:monitor(process, UserPid),
+    {reply, {ok, self()}, {ListenPort, Backlog, UserPid, {Backlog, []}}};
+handle_call({close, _ListenSocket}, _From, _State) ->
+    {reply, ok, null}.
 
 
-handle_info(_Request, _State) ->
+handle_info({'DOWN', _MonitorReference, process, _Pid, _Reason}, _State) ->
     {noreply, null}.
 
 
@@ -52,3 +56,5 @@ terminate(_Reason, _STate) ->
 
 code_change(_Oldv, _State, _Extra) ->
     {ok, null}.
+
+

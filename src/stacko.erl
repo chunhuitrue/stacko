@@ -17,6 +17,9 @@
 
 -include("head.hrl").
 
+-export([listen/2]).
+-export([close/1]).
+
 -export([dispatcher_num/1]).
 -export([load_conf/0]).
 -export([release_conf/0]).
@@ -44,6 +47,16 @@
 -export([test_arp/0]).
 -export([test_ping/0]).
 -export([test_no_ping/0]).
+
+
+
+
+listen(Port, Options) ->
+    tcp:listen(Port, Options).
+
+
+close(Socket) ->
+    tcp:close(Socket).
 
 
 dispatcher_num(Num) ->

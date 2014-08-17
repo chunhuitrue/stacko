@@ -16,31 +16,16 @@
 
 -module(tcp).
 
-%% -export([start/0]).
-%% -export([loop/0]).
-%% -export([rec/0]).
+-export([listen/2]).
+-export([close/1]).
 
 
-%% start() ->
-%%     spawn(tcp_sup, loop, []).
+
+listen(Port, _Options) ->
+    Backlog = 3,
+    gen_server:call(tcp_listen, {listen, {Port, Backlog, self()}}).
 
 
-%% loop() ->
-%%     receive
-%%         {From, echo} ->
-%%             From ! {self(), echo};
-%%         {_From, die} ->
-%%             2 = 3
-%%     end,
-%%     loop().
-            
+close(Scoket) ->
+    gen_server:call(tcp_listen, {close, Scoket}).
 
-%% rec() ->
-%%     receive
-%%         X ->
-%%             X
-%%     after 1000 ->
-%%             true
-%%     end.
-      
-            
