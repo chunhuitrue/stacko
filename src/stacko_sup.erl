@@ -21,7 +21,6 @@
 -export([start_link/0]).
 -export([init/1]).
 
--export([start_nic/1]).
 
 
 start_link() ->
@@ -29,6 +28,20 @@ start_link() ->
     
 
 init([]) ->
+    NicreadSpec = {nic_in,                       
+                   {nic_in, start_link, []},      
+                   permanent,                     
+                   brutal_kill,                   
+                   worker,                        
+                   [nic_in]},                     
+
+    NicwriteSpec = {nic_out,                           % id
+                    {nic_out, start_link, []},         % {Module, Function, Arguments}
+                    permanent,                         % Restart
+                    brutal_kill,                       % Shutdown
+                    worker,                            % Type
+                    [nic_out]},                        % ModuleList
+
     DispatcherSpec = {dispatcher_sup,                   % id
                       {dispatcher_sup, start_link, []}, % {Module, Function, Arguments}
                       permanent,                        % Restart
@@ -64,25 +77,9 @@ init([]) ->
                supervisor,        
                [tcp_sup]}, 
 
-    {ok, {{one_for_one, 5, 5}, [DispatcherSpec, ArpSpec, IcmpSpec, TcpListenSpec, TcpSpec]}}.
-
-
-start_nic(DispatcherNum) ->
-    ReadSpec = {nicread_gen,                              % id
-                {nic_in, start_link, [DispatcherNum]},    % {Module, Function, Arguments}
-                permanent,                                % Restart
-                brutal_kill,                              % Shutdown
-                worker,                                   % Type
-                [nic_in]},                                % ModuleList
-    supervisor:start_child(stacko_sup, ReadSpec),
-
-    WriteSpec = {nicwrite,                          % id
-                 {nic_out, start_link, [nicwrite]}, % {Module, Function, Arguments}
-                 permanent,                         % Restart
-                 brutal_kill,                       % Shutdown
-                 worker,                            % Type
-                 [nic_out]},                        % ModuleList
-    supervisor:start_child(stacko_sup, WriteSpec).
+    {ok, 
+     {{one_for_one, 5, 5}, 
+      [NicreadSpec, NicwriteSpec, DispatcherSpec, ArpSpec, IcmpSpec, TcpListenSpec, TcpSpec]}}.
 
 
 

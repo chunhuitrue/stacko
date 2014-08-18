@@ -60,7 +60,7 @@ close(Socket) ->
 
 
 dispatcher_num(Num) ->
-    dispatcher_sup:start_dispatcher(Num - 1).
+    dispatcher_sup:start_dispatcher(Num).
 
 
 load_conf() ->

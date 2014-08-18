@@ -15,30 +15,73 @@
 
 -module(nic_in).
 
--export([start_link/1]).
--export([nic_read/1]).
+
+-behaviour(gen_server).
+-export([init/1]).
+-export([start_link/0]).
+-export([handle_call/3]).
+-export([handle_cast/2]).
+-export([handle_info/2]).
+-export([terminate/2]).
+-export([code_change/3]).
+
+-export([read_packet/0]).
+-export([nic_read/0]).
 
 
-start_link(MaxIndex) ->
-    Pid = spawn_link(?MODULE, nic_read, [MaxIndex]),
-    register(nicread, Pid),
-    {ok, Pid}.
+
+init([]) ->
+    {ok, null}.
 
 
-nic_read(MaxIndex) ->
-    nic_in(MaxIndex, MaxIndex).
-nic_in(MaxIndex, Acc) when Acc < 0 ->
-    nic_in(MaxIndex, MaxIndex);
-nic_in(MaxIndex, Acc) when Acc >= 0 ->
+start_link() ->
+    gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
+
+
+handle_cast(_Request, State) ->
+    {noreply, State}.
+
+
+handle_call(read, _From, _State) ->
+    Res = nic_read(),
+    {reply, Res, _State};
+handle_call({test, Time}, _From, _State) ->
+    timer:sleep(Time),
+    io:format("time out!!~n", []),
+    {reply, ok, _State}.
+
+
+handle_info(_Request, State) ->
+    {noreply, State}.
+
+
+terminate(_Reason, _State) ->
+    ok.
+
+
+code_change(_Oldv, State, _Extra) ->
+    {ok, State}.
+
+
+read_packet() ->
+    gen_server:call(?MODULE, read).
+
+
+nic_read() ->
     case nif:nic_recv() of
         {error, eagain} ->
-            timer:sleep(5);
+            %% io:format("nic_read error eagain~n", []),
+            timer:sleep(20),
+            nic_read();
         {error, ebadf} ->
-            timer:sleep(1000);
-        {error, _Reason} ->
-            ok;
+            %% io:format("nic_read error ebadf~n", []),
+            {error, ebadf};
+        {error, Reason} ->
+            %% io:format("nic_read error reason ~p ~n", [Reason]),
+            %% timer:sleep(100),
+            {error, Reason};
         Packet ->
-            DispName = list_to_atom(atom_to_list(dispatcher) ++ integer_to_list(Acc)),
-            dispatcher:to_dispatcher(DispName, Packet)
-    end,
-    nic_in(MaxIndex, Acc - 1).
+            %% io:format("nic_read Packet~n", []),
+            {ok, Packet}
+    end.
+

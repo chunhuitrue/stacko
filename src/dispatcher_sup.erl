@@ -20,7 +20,6 @@
 
 -export([start_link/0]).
 -export([init/1]).
-
 -export([start_dispatcher/1]).
 
 
@@ -29,23 +28,15 @@ start_link() ->
 
 
 init([]) ->
-    {ok, {{one_for_one, 5, 5}, []}}.
+    DispatcherSpec = [{dispatcher,
+                       {dispatcher, start_link, []},
+                       permanent,
+                       brutal_kill,
+                       worker,
+                       [dispatcher]}],
+    {ok, {{simple_one_for_one, 5, 5}, DispatcherSpec}}.
 
 
-start_dispatcher(MaxIndex) ->
-    dispatcher(MaxIndex),
-    stacko_sup:start_nic(MaxIndex).
+start_dispatcher(Num) ->
+    [supervisor:start_child(?MODULE, []) || _N <- lists:seq(1, Num)].
 
-
-dispatcher(MaxIndex) ->
-    lists:map(fun(Spec) -> supervisor:start_child(dispatcher_sup, Spec) end, 
-              [{Name,                             % id
-                {dispatcher, start_link, [Name]}, % {Module, Function, Arguments}
-                permanent,                        % Restart
-                brutal_kill,                      % Shutdown
-                worker,                           % Type
-                [dispatcher]}                    % ModuleList
-               || N <- lists:seq(0, MaxIndex), 
-                  Name <- [list_to_atom(atom_to_list(dispatcher) ++ integer_to_list(N))]]).
-    
-                    
