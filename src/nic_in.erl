@@ -44,11 +44,14 @@ handle_cast(_Request, State) ->
 
 handle_call(read, _From, _State) ->
     Res = nic_read(),
-    {reply, Res, _State};
-handle_call({test, Time}, _From, _State) ->
-    timer:sleep(Time),
-    io:format("time out!!~n", []),
-    {reply, ok, _State}.
+    {reply, Res, _State}.
+%% handle_call({test, Time}, _From, _State) ->
+%%     timer:sleep(Time),
+%%     io:format("time out!!~n", []),
+%%     {reply, ok, _State};
+%% handle_call({test_die}, _From, _State) ->
+%%     2 = 3,
+%%     {reply, ok, _State}.
 
 
 handle_info(_Request, State) ->
