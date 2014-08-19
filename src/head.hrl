@@ -13,7 +13,6 @@
 %% limitations under the License.
 
 
--define(CONF_LOOP_TIME, 1000).
 
 -define(MINI_ETH_FRAME, 64).
 -define(TYPE_ARP, 16#0806).
