@@ -20,7 +20,6 @@
 -export([listen/2]).
 -export([close/1]).
 
--export([dispatcher_num/1]).
 -export([init_script/0]).
 -export([release_conf/0]).
 
@@ -59,13 +58,7 @@ close(Socket) ->
     tcp:close(Socket).
 
 
-dispatcher_num(Num) ->
-    dispatcher_sup:start_dispatcher(Num).
-
-
 init_script() ->
-    dispatcher_num(3),    
-
     if_up(p2p1),
     if_up(p7p1),
 
@@ -92,7 +85,7 @@ if_up(NicName) ->
 
 
 if_down(NicName) ->
-    ok = nif:if_down(NicName),
+    ok = nif:nic_down(NicName),
     true = tables:del_nic(NicName),
     ok.
 

@@ -17,9 +17,53 @@
 
 -include("head.hrl").
 
+-behaviour(gen_server).
+-export([init/1]).
 -export([start_link/0]).
--export([loop/0]).
+-export([handle_call/3]).
+-export([handle_cast/2]).
+-export([handle_info/2]).
+-export([terminate/2]).
+-export([code_change/3]).
 
+
+
+start_link() ->
+    gen_server:start_link(?MODULE, [], []).
+
+
+init([]) ->
+    {ok, null, 0}.
+
+
+handle_cast({packet, Packet}, _State) ->
+    <<_DMAC:48, _SMAC:48, Type:16/integer-unsigned-big, _Payload/binary>> = Packet,
+    case Type  of
+        ?TYPE_ARP ->                      
+            arp:to_arp(Packet);
+        ?TYPE_IP ->
+            dispatch_ip(Packet);
+        _ ->
+            ok
+    end,
+    {noreply, _State}.
+
+
+handle_call(_Request, _From, _State) ->
+    {noreply, _State}.
+
+
+handle_info(timeout, _State) ->
+    nic_in ! {regist, self()}, 
+    {noreply, _State}.
+
+
+terminate(_Reason, _State) ->
+    ok.
+
+
+code_change(_Oldv, State, _Extra) ->
+    {ok, State}.
 
 
 dispatch_ip(Packet) ->
@@ -37,25 +81,5 @@ dispatch_ip(Packet) ->
     end.
 
 
-loop() ->
-    case nic_in:read_packet() of
-        {ok, Packet} ->
-            <<_DMAC:48, _SMAC:48, Type:16/integer-unsigned-big, _Payload/binary>> = Packet,
-            case Type of
-                ?TYPE_ARP ->                      
-                    arp:to_arp(Packet);
-                ?TYPE_IP ->
-                    dispatch_ip(Packet);
-                _ ->
-                    ok
-            end;
-        _Other ->
-            %% timer:sleep(100)
-            ok
-    end,
-    loop().
 
 
-start_link() ->
-    Pid = spawn_link(?MODULE, loop, []),
-    {ok, Pid}.

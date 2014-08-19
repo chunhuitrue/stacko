@@ -15,76 +15,45 @@
 
 -module(nic_in).
 
+-include("head.hrl").
 
--behaviour(gen_server).
--export([init/1]).
 -export([start_link/0]).
--export([handle_call/3]).
--export([handle_cast/2]).
--export([handle_info/2]).
--export([terminate/2]).
--export([code_change/3]).
 
--export([read_packet/0]).
--export([nic_read/0]).
-
-
-
-init([]) ->
-    {ok, null}.
 
 
 start_link() ->
-    gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
+    Pid = spawn_link(fun() -> start([]) end),
+    register(?MODULE, Pid),
+    {ok, Pid}.
 
 
-handle_cast(_Request, State) ->
-    {noreply, State}.
+start(List) when length(List) < ?DISPATCHER_NUM ->
+    receive
+        {regist, Pid} ->
+            start([Pid | List])
+    end;
+start(List) when length(List) >= ?DISPATCHER_NUM ->
+    loop(List, []).
 
 
-handle_call(read, _From, _State) ->
-    Res = nic_read(),
-    {reply, Res, _State}.
-%% handle_call({test, Time}, _From, _State) ->
-%%     timer:sleep(Time),
-%%     io:format("time out!!~n", []),
-%%     {reply, ok, _State};
-%% handle_call({test_die}, _From, _State) ->
-%%     2 = 3,
-%%     {reply, ok, _State}.
-
-
-handle_info(_Request, State) ->
-    {noreply, State}.
-
-
-terminate(_Reason, _State) ->
-    ok.
-
-
-code_change(_Oldv, State, _Extra) ->
-    {ok, State}.
-
-
-read_packet() ->
-    gen_server:call(?MODULE, read).
-
-
-nic_read() ->
+loop([], Acc) ->
+    loop(Acc, []);
+loop(PidList, Acc) ->
     case nif:nic_recv() of
         {error, eagain} ->
             %% io:format("nic_read error eagain~n", []),
             timer:sleep(20),
-            nic_read();
+            loop(PidList, Acc);
         {error, ebadf} ->
             %% io:format("nic_read error ebadf~n", []),
-            {error, ebadf};
-        {error, Reason} ->
+            loop(PidList, Acc);
+        {error, _Reason} ->
             %% io:format("nic_read error reason ~p ~n", [Reason]),
             %% timer:sleep(100),
-            {error, Reason};
+            loop(PidList, Acc);
         Packet ->
             %% io:format("nic_read Packet~n", []),
-            {ok, Packet}
+            gen_server:cast(hd(PidList), {packet, Packet}),
+            loop(tl(PidList), [hd(PidList) | Acc])
     end.
 

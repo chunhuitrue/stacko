@@ -16,11 +16,12 @@
 
 -module(dispatcher_sup).
 
+-include("head.hrl").
+
 -behaviour(supervisor).
 
 -export([start_link/0]).
 -export([init/1]).
--export([start_dispatcher/1]).
 
 
 start_link() ->
@@ -28,15 +29,19 @@ start_link() ->
 
 
 init([]) ->
-    DispatcherSpec = [{dispatcher,
+    DispatcherSpec = [{{dispatcher, N},
                        {dispatcher, start_link, []},
                        permanent,
                        brutal_kill,
                        worker,
-                       [dispatcher]}],
-    {ok, {{simple_one_for_one, 5, 5}, DispatcherSpec}}.
+                       [dispatcher]}
+                      || N <- lists:seq(1, ?DISPATCHER_NUM)],
 
-
-start_dispatcher(Num) ->
-    [supervisor:start_child(?MODULE, []) || _N <- lists:seq(1, Num)].
+    NicreadSpec = {nic_in,                       
+                   {nic_in, start_link, []},      
+                   permanent,                     
+                   brutal_kill,                   
+                   worker,                        
+                   [nic_in]},                     
+    {ok, {{one_for_all, 5, 5}, [NicreadSpec | DispatcherSpec]}}.
 

@@ -28,13 +28,6 @@ start_link() ->
     
 
 init([]) ->
-    NicreadSpec = {nic_in,                       
-                   {nic_in, start_link, []},      
-                   permanent,                     
-                   brutal_kill,                   
-                   worker,                        
-                   [nic_in]},                     
-
     NicwriteSpec = {nic_out,                           % id
                     {nic_out, start_link, []},         % {Module, Function, Arguments}
                     permanent,                         % Restart
@@ -79,7 +72,7 @@ init([]) ->
 
     {ok, 
      {{one_for_one, 5, 5}, 
-      [NicreadSpec, NicwriteSpec, DispatcherSpec, ArpSpec, IcmpSpec, TcpListenSpec, TcpSpec]}}.
+      [NicwriteSpec, DispatcherSpec, ArpSpec, IcmpSpec, TcpListenSpec, TcpSpec]}}.
 
 
 
