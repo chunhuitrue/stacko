@@ -21,13 +21,13 @@
 -export([close/1]).
 
 -export([dispatcher_num/1]).
--export([load_conf/0]).
+-export([init_script/0]).
 -export([release_conf/0]).
 
--export([nic_up/1]).
--export([nic_down/1]).
+-export([if_up/1]).
+-export([if_down/1]).
 -export([arp/0]).
--export([conf_ip/3]).
+-export([ifcfg/3]).
 -export([route/1]).
 -export([route/2]).
 -export([route/6]).
@@ -63,18 +63,18 @@ dispatcher_num(Num) ->
     dispatcher_sup:start_dispatcher(Num).
 
 
-load_conf() ->
+init_script() ->
     dispatcher_num(3),    
 
-    nic_up(p2p1),
-    nic_up(p7p1),
+    if_up(p2p1),
+    if_up(p7p1),
 
-    conf_ip({192, 168, 1, 9}, {255, 255, 255, 0}, p2p1),
-    conf_ip({192, 168, 1, 8}, {255, 255, 255, 0}, p2p1),
-    conf_ip({192, 168, 1, 7}, {255, 255, 255, 0}, p2p1),
-    conf_ip({192, 168, 1, 6}, {255, 255, 255, 0}, p2p1),
-    conf_ip({10, 10, 1, 9}, {255, 255, 255, 0}, p7p1),
-    conf_ip({10, 10, 1, 8}, {255, 255, 255, 0}, p7p1),
+    ifcfg({192, 168, 1, 9}, {255, 255, 255, 0}, p2p1),
+    ifcfg({192, 168, 1, 8}, {255, 255, 255, 0}, p2p1),
+    ifcfg({192, 168, 1, 7}, {255, 255, 255, 0}, p2p1),
+    ifcfg({192, 168, 1, 6}, {255, 255, 255, 0}, p2p1),
+    ifcfg({10, 10, 1, 9}, {255, 255, 255, 0}, p7p1),
+    ifcfg({10, 10, 1, 8}, {255, 255, 255, 0}, p7p1),
     
     route(add, {0, 0, 0, 0}, {192, 168, 1, 1}, {0, 0, 0, 0}, [$G], p2p1),
     route(add, {10, 10, 1, 0}, null, {255, 255, 255, 0}, [], p7p1),
@@ -82,17 +82,17 @@ load_conf() ->
 
 
 release_conf() ->
-    nic_down(p2p1),
-    nic_down(p7p1).
+    if_down(p2p1),
+    if_down(p7p1).
 
 
-nic_up(NicName) ->
+if_up(NicName) ->
     {Index, MAC, HwType, MTU} =  nif:nic_up(NicName),
     tables:insert_nic(NicName, Index, MAC, HwType, MTU).
 
 
-nic_down(NicName) ->
-    ok = nif:nic_down(NicName),
+if_down(NicName) ->
+    ok = nif:if_down(NicName),
     true = tables:del_nic(NicName),
     ok.
 
@@ -115,7 +115,7 @@ test_arp() ->
     tables:insert_arp({192, 168, 1, 22}, 1, MAC, p2p1, Now).
 
 
-conf_ip(Ip, Mask, Nic) ->
+ifcfg(Ip, Mask, Nic) ->
     tables:insert_ip(Ip, Mask, Nic).
 
 
