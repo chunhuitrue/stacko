@@ -25,13 +25,12 @@
 -export([code_change/3]).
 
 
-
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 
 init([]) ->
-    {ok, null}.
+    {ok, null, 0}.
 
 
 handle_cast(_Request, _State) ->
@@ -42,7 +41,9 @@ handle_call(_Request, _From, _State) ->
     {noreply, _State}.
 
 
-handle_info(_Request,  _State) ->
+handle_info(timeout,  _State) ->
+    ListenPids = tables:all_listen(),
+    io:format("tcp_port_res start, and lookup tcp_listen_table pids: ~p~n", [ListenPids]),
     {noreply, _State}.
 
 

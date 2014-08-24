@@ -22,8 +22,8 @@
 
 
 start(_StartType, _StartArgs) ->
-    {ok, Pid} = stacko_sup:start_link(),
     tables:create_tables(),
+    {ok, Pid} = stacko_sup:start_link(),
     stacko:init_script(),
     {ok, Pid}.
 

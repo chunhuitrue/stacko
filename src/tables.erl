@@ -33,11 +33,16 @@
 -export([del_ip/1]).
 -export([is_my_ip/1]).
 
-
 -export([create_route/0]).
 -export([insert_route/6]).
 -export([del_route/1]).
 -export([find_route/1]).
+
+-export([create_listen/0]).
+-export([lookup_listen/1]).
+-export([insert_listen/2]).
+-export([del_listen/1]).
+-export([all_listen/0]).
 
 
 
@@ -45,8 +50,8 @@ create_tables() ->
     create_ip(),
     create_arp(),
     create_nic(),
-    create_route().
-
+    create_route(),
+    create_listen().
 
 
 %% nic tabe
@@ -160,3 +165,31 @@ find_route(First, IP, Acc) ->
     end.
 find_route(IP) ->
     find_route(ets:first(route_table), IP, null).
+
+
+%% tcp_listen table
+create_listen() ->
+    ets:new(tcp_listen_table, [set, public, named_table, public]).
+
+
+lookup_listen(Port) ->
+    ets:lookup(tcp_listen_table, [Port]).
+
+
+insert_listen(Port, Pid) ->
+    ets:insert(tcp_listen_table, [{Port, Pid}]).
+
+
+del_listen(Port) ->
+    ets:delete(tcp_listen_table, Port).
+
+
+all_listen('$end_of_table', PidList) ->
+    PidList;
+all_listen(First, PidList) ->
+    [{_Port, Pid}] = ets:lookup(tcp_listen_table, First),
+    all_listen(ets:next(tcp_listen_table, First), [Pid | PidList]).
+
+
+all_listen() ->
+    all_listen(ets:first(tcp_listen_table), []).
