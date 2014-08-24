@@ -13,11 +13,11 @@
 %% limitations under the License.
 
 
--module(tcp_listen).
+-module(tcp_port_res).
 
 -behaviour(gen_server).
 -export([init/1]).
--export([start_link/2]).
+-export([start_link/0]).
 -export([handle_cast/2]).
 -export([handle_call/3]).
 -export([handle_info/2]).
@@ -26,12 +26,12 @@
 
 
 
-start_link(Port, Backlog) ->
-    gen_server:start_link(?MODULE, [Port, Backlog], []).
+start_link() ->
+    gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 
-init([Port, Backlog]) ->
-    {ok, {Port, Backlog}}.
+init([]) ->
+    {ok, null}.
 
 
 handle_cast(_Request, _State) ->

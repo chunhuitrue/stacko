@@ -14,13 +14,12 @@
 
 
 
--module(tcp_sup).
+-module(tcp_port_sup).
 
 -behaviour(supervisor).
 
 -export([start_link/0]).
 -export([init/1]).
--export([start_stack/0]).
 
 
 
@@ -29,18 +28,21 @@ start_link() ->
 
 
 init([]) ->
-    StackSpec = {tcp_stack,
-                 {tcp_stack, start_link, []},
-                 temporary,
-                 brutal_kill,
-                 worker,
-                 [tcp_stack]},
-    {ok, {{simple_one_for_one, 0, 1}, [StackSpec]}}.
+    TcpPortRes = {tcp_port_res,
+                  {tcp_port_res, start_link, []},
+                  permanent,
+                  brutal_kill,
+                  worker,
+                  [tcp_port_res]},
 
+    TcpListenSup = {tcp_listen_sup,
+                    {tcp_listen_sup, start_link, []},
+                    permanent,
+                    brutal_kill,
+                    supervisor,
+                    [tcp_listen_sup]},
 
-start_stack() ->
-    supervisor:start_child(?MODULE, []).
-
+    {ok, {{one_for_all, 5, 5}, [TcpPortRes, TcpListenSup]}}.
 
 
 

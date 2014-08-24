@@ -56,23 +56,23 @@ init([]) ->
                worker,                   % Type
                [arp]},                   % ModuleList
 
-    TcpListenSpec = {tcp_listen,             
-                     {tcp_listen, start_link, []},
-                     permanent,  
-                     brutal_kill,       
-                     worker,
-                     [tcp_listen]}, 
+    %% TcpListenSpec = {tcp_listen,             
+    %%                  {tcp_listen, start_link, []},
+    %%                  permanent,  
+    %%                  brutal_kill,       
+    %%                  worker,
+    %%                  [tcp_listen]}, 
 
-    TcpSpec = {tcp_sup,             
-               {tcp_sup, start_link, []},
-               permanent,         
-               brutal_kill,       
-               supervisor,        
-               [tcp_sup]}, 
+    TcpPortSupSpec = {tcp_port_sup,             
+                        {tcp_port_sup, start_link, []},
+                        permanent,         
+                        brutal_kill,       
+                        supervisor,        
+                        [tcp_port_sup]}, 
 
     {ok, 
      {{one_for_one, 5, 5}, 
-      [NicwriteSpec, DispatcherSpec, ArpSpec, IcmpSpec, TcpListenSpec, TcpSpec]}}.
+      [NicwriteSpec, DispatcherSpec, ArpSpec, IcmpSpec, TcpPortSupSpec]}}.
 
 
 
