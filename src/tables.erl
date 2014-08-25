@@ -50,8 +50,7 @@ create_tables() ->
     create_ip(),
     create_arp(),
     create_nic(),
-    create_route(),
-    create_listen().
+    create_route().
 
 
 %% nic tabe

@@ -14,9 +14,7 @@
 
 
 
--module(dispatcher_sup).
-
--include("head.hrl").
+-module(tcp_port_sup).
 
 -behaviour(supervisor).
 
@@ -24,25 +22,28 @@
 -export([init/1]).
 
 
+
 start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 
 init([]) ->
-    DispatcherSpec = [{{dispatcher, N},
-                       {dispatcher, start_link, []},
-                       permanent,
-                       brutal_kill,
-                       worker,
-                       [dispatcher]}
-                      || N <- lists:seq(1, ?DISPATCHER_NUM)],
+    TcpPortRes = {tcp_port_res,
+                  {tcp_port_res, start_link, []},
+                  permanent,
+                  brutal_kill,
+                  worker,
+                  [tcp_port_res]},
+    
+    TcpListenSup = {tcp_listen_sup,
+                    {tcp_listen_sup, start_link, []},
+                    permanent,
+                    brutal_kill,
+                    supervisor,
+                    [tcp_listen_sup]},
+    
+    {ok, {{one_for_all, 5, 5}, [TcpPortRes, TcpListenSup]}}.
 
-    NicreadSpec = {nic_in,                       
-                   {nic_in, start_link, []},      
-                   permanent,                     
-                   brutal_kill,                   
-                   worker,                        
-                   [nic_in]},                     
 
-    {ok, {{one_for_all, 5, 5}, [NicreadSpec | DispatcherSpec]}}.
+
 

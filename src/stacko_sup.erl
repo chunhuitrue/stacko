@@ -57,24 +57,16 @@ init([]) ->
                [arp]},                   % ModuleList
 
 
-    TcpPortRes = {tcp_port_res,
-                  {tcp_port_res, start_link, []},
+    TcpPortSup = {tcp_port_sup,
+                  {tcp_port_sup, start_link, []},
                   permanent,
                   brutal_kill,
-                  worker,
-                  [tcp_port_res]},
-
-
-    TcpListenSup = {tcp_listen_sup,
-                    {tcp_listen_sup, start_link, []},
-                    permanent,
-                    brutal_kill,
-                    supervisor,
-                    [tcp_listen_sup]},
+                  supervisor,
+                  [tcp_port_sup]},
 
     {ok, 
      {{one_for_one, 5, 5}, 
-      [NicwriteSpec, DispatcherSpec, ArpSpec, IcmpSpec, TcpPortRes, TcpListenSup]}}.
+      [NicwriteSpec, DispatcherSpec, ArpSpec, IcmpSpec, TcpPortSup]}}.
 
 
 

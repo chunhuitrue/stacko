@@ -27,6 +27,7 @@
 
 
 start_link(Port, Backlog) ->
+    io:format("tcp_listen start~n"),
     gen_server:start_link(?MODULE, [Port, Backlog], []).
 
 

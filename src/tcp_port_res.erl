@@ -30,7 +30,8 @@ start_link() ->
 
 
 init([]) ->
-    {ok, null, 0}.
+    tables:create_listen(),
+    {ok, null}.
 
 
 handle_cast(_Request, _State) ->
@@ -41,9 +42,7 @@ handle_call(_Request, _From, _State) ->
     {noreply, _State}.
 
 
-handle_info(timeout,  _State) ->
-    ListenPids = tables:all_listen(),
-    io:format("tcp_port_res start, and lookup tcp_listen_table pids: ~p~n", [ListenPids]),
+handle_info(_Request,  _State) ->
     {noreply, _State}.
 
 
