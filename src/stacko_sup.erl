@@ -60,7 +60,7 @@ init([]) ->
     TcpPortSup = {tcp_port_sup,
                   {tcp_port_sup, start_link, []},
                   permanent,
-                  brutal_kill,
+                  2000,
                   supervisor,
                   [tcp_port_sup]},
 

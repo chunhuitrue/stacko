@@ -38,7 +38,7 @@ init([]) ->
     TcpListenSup = {tcp_listen_sup,
                     {tcp_listen_sup, start_link, []},
                     permanent,
-                    brutal_kill,
+                    2000,
                     supervisor,
                     [tcp_listen_sup]},
     
