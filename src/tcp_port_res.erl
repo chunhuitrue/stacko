@@ -31,8 +31,7 @@ start_link() ->
 
 
 init([]) ->
-    tables:create_listen(),
-    {ok, null}.
+    {ok, null, 0}.
 
 
 handle_cast(_Request, _State) ->
@@ -63,6 +62,10 @@ handle_call({listen, Port, Backlog, UserPid}, _From, _State) ->
     end.
 
 
+handle_info(timeout, _State) ->
+    tables:create_listen(),
+    {noreply, _State};
+    
 handle_info({'DOWN', _Ref, process, Pid, _Reason}, _State) ->
     io:format("listen process is down. pid: ~p~n", [Pid]),
     tables:del_listen(Pid),
