@@ -16,9 +16,24 @@
 
 -module(tcp).
 
+-export([netstat/0]).
+
 -export([listen/2]).
 -export([close/1]).
 
+
+
+print_listen('$end_of_table') ->
+    ok;
+print_listen(First) ->
+    [{Port, Pid}] = tables:lookup_listen(First),
+    io:format("    ~p            ~p~n", [Port, Pid]),
+    print_listen(ets:next(tcp_listen_table, First)).
+
+
+netstat() ->
+    io:format("listening port    pid~n"),
+    print_listen(ets:first(tcp_listen_table)).
 
 
 listen(Port, _Options) ->

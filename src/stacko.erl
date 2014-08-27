@@ -31,6 +31,7 @@
 -export([route/2]).
 -export([route/6]).
 -export([ping/1]).
+-export([netstat/0]).
 
 -export([mac_to_binary/1]).
 -export([get_ip_from_nic/1]).
@@ -82,6 +83,10 @@ init_script() ->
 release_conf() ->
     if_down(p2p1),
     if_down(p7p1).
+
+
+netstat() ->
+    tcp:netstat().
 
 
 if_up(NicName) ->
