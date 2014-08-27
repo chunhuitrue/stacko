@@ -17,41 +17,57 @@
 
 -behaviour(gen_server).
 -export([init/1]).
--export([start_link/2]).
+-export([start_link/3]).
 -export([handle_cast/2]).
 -export([handle_call/3]).
 -export([handle_info/2]).
 -export([terminate/2]).
 -export([code_change/3]).
 
+-record(state, {port, backlog, userpid, userref}).
 
 
-start_link(Port, Backlog) ->
-    io:format("tcp_listen start~n"),
-    gen_server:start_link(?MODULE, [Port, Backlog], []).
+
+start_link(Port, Backlog, UserPid) ->
+    io:format("tcp_listen start. port: ~p, backlog: ~p, userpid: ~p~n", 
+              [Port, Backlog, UserPid]),
+    gen_server:start_link(?MODULE, [Port, Backlog, UserPid], []).
 
 
-init([Port, Backlog]) ->
-    {ok, {Port, Backlog}}.
+init([Port, Backlog, UserPid]) ->
+    {ok, #state{port = Port, backlog = Backlog, userpid = UserPid, userref = null}, 0}.
 
 
-handle_cast(_Request, _State) ->
-    {noreply, null}.
+close(UserRef) ->
+    erlang:demonitor(UserRef),
+    supervisor:terminate_child(tcp_listen_sup, self()).
 
 
-handle_call(_Request, _From, _State) ->
-    {noreply, _State}.
+handle_cast({close, _UserPid}, State) ->
+    #state{userref = UserRef} = State,
+    close(UserRef),
+    {noreply, State}.
 
 
-handle_info(_Request,  _State) ->
-    {noreply, _State}.
+handle_call(_Request, _From, State) ->
+    {noreply, State}.
+
+
+handle_info({'DOWN', UserRef, process, _Pid, _Reason}, State) ->
+    close(UserRef),
+    {noreply, State};
+
+handle_info(timeout, State) ->
+    UserRef = erlang:monitor(process, State#state.userpid),
+    io:format("tcp_listen timeout.userref: ~p~n", [UserRef]),
+    {noreply, State#state{userref = UserRef}}.
 
 
 terminate(_Reason, _STate) ->
     ok.
 
 
-code_change(_Oldv, _State, _Extra) ->
-    {ok, null}.
+code_change(_Oldv, State, _Extra) ->
+    {ok, State}.
 
 

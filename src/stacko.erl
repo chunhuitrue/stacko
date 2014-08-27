@@ -46,8 +46,13 @@
 -export([test_arp/0]).
 -export([test_ping/0]).
 -export([test_no_ping/0]).
+-export([test_server/0]).
 
 
+
+test_server() ->
+    {ok, Socket} = stacko:listen(80, []),
+    io:format("listen socket: ~p~n", [Socket]).
 
 
 listen(Port, Options) ->

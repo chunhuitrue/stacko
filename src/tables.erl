@@ -42,7 +42,6 @@
 -export([lookup_listen/1]).
 -export([insert_listen/2]).
 -export([del_listen/1]).
--export([all_listen/0]).
 
 
 
@@ -171,24 +170,31 @@ create_listen() ->
     ets:new(tcp_listen_table, [set, public, named_table, public]).
 
 
-lookup_listen(Port) ->
-    ets:lookup(tcp_listen_table, [Port]).
+lookup_listen('$end_of_table', _Pid) ->
+    [];
+lookup_listen(First, Pid) ->
+    case lookup_listen(First) of
+        [{Port, Pid}] ->
+            Port;  
+        [] ->
+            lookup_listen(ets:next(tcp_listen_table, First), Pid)
+    end.
+
+
+lookup_listen(Pid) when is_pid(Pid) ->
+    lookup_listen(ets:first(tcp_listen_table), Pid);
+lookup_listen(Port) when is_integer(Port) ->
+    ets:lookup(tcp_listen_table, Port).
 
 
 insert_listen(Port, Pid) ->
     ets:insert(tcp_listen_table, [{Port, Pid}]).
 
 
-del_listen(Port) ->
+del_listen(Pid) when is_pid(Pid) ->
+    ets:delete(tcp_listen_table, lookup_listen(Pid));
+del_listen(Port) when is_integer(Port) ->
     ets:delete(tcp_listen_table, Port).
 
 
-all_listen('$end_of_table', PidList) ->
-    PidList;
-all_listen(First, PidList) ->
-    [{_Port, Pid}] = ets:lookup(tcp_listen_table, First),
-    all_listen(ets:next(tcp_listen_table, First), [Pid | PidList]).
-
-
-all_listen() ->
-    all_listen(ets:first(tcp_listen_table), []).
+    

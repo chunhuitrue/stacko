@@ -23,9 +23,16 @@
 
 listen(Port, _Options) ->
     Backlog = 3,
-    gen_server:call(tcp_listen, {listen, {Port, Backlog, self()}}).
+    case gen_server:call(tcp_port_res, {listen, Port, Backlog, self()}) of
+        {ok, ListenPid} ->
+            Ref = erlang:monitor(process, ListenPid),
+            {ok, {Ref, ListenPid}};
+        Ret ->
+            Ret
+    end.
+    
 
-
-close(Scoket) ->
-    gen_server:call(tcp_listen, {close, Scoket}).
+close({Ref, ListenPid}) ->
+    erlang:demonitor(Ref),
+    gen_server:cast(ListenPid, {close, self()}).
 
