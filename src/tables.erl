@@ -43,13 +43,19 @@
 -export([insert_listen/2]).
 -export([del_listen/1]).
 
+-export([create_stack/0]).
+-export([lookup_stack/1]).
+-export([insert_stack/2]).
+-export([del_stack/1]).
+
 
 
 create_tables() ->
     create_ip(),
     create_arp(),
     create_nic(),
-    create_route().
+    create_route(),
+    create_stack().
 
 
 %% nic tabe
@@ -197,4 +203,20 @@ del_listen(Port) when is_integer(Port) ->
     ets:delete(tcp_listen_table, Port).
 
 
-    
+%% tcp_stack table
+%% key: {Sip, Sport, Dip, Dport}
+%% val: Pid
+create_stack() ->
+    ets:new(tcp_stack_table, [set, public, named_table, public]).
+
+
+lookup_stack({Sip, Sport, Dip, Dport}) ->
+    ets:lookup(tcp_stack_table, {Sip, Sport, Dip, Dport}).
+
+
+insert_stack({Sip, Sport, Dip, Dport}, Pid) ->
+    ets:insert(tcp_stack_table, [{{Sip, Sport, Dip, Dport}, Pid}]).
+
+
+del_stack({Sip, Sport, Dip, Dport}) ->
+    ets:delete(tcp_stack_table, {Sip, Sport, Dip, Dport}).
