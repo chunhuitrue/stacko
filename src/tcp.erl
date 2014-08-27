@@ -27,12 +27,12 @@ print_listen('$end_of_table') ->
     ok;
 print_listen(First) ->
     [{Port, Pid}] = tables:lookup_listen(First),
-    io:format("    ~p            ~p~n", [Port, Pid]),
+    io:format("~p        *:~p                *:*              LISTEN~n", [Pid, Port]),
     print_listen(ets:next(tcp_listen_table, First)).
 
 
 netstat() ->
-    io:format("listening port    pid~n"),
+    io:format("pid             local address       foreign address     state~n"),
     print_listen(ets:first(tcp_listen_table)).
 
 
