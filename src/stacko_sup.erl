@@ -64,9 +64,16 @@ init([]) ->
                   supervisor,
                   [tcp_port_sup]},
 
+    TcpStackGc = {tcp_stack_gc,
+                  {tcp_stack_gc, start_link, []},
+                  permanent,
+                  brutal_kill,
+                  supervisor,
+                  [tcp_stack_gc]},
+
     {ok, 
      {{one_for_one, 5, 5}, 
-      [NicwriteSpec, DispatcherSpec, ArpSpec, IcmpSpec, TcpPortSup]}}.
+      [NicwriteSpec, DispatcherSpec, ArpSpec, IcmpSpec, TcpPortSup, TcpStackGc]}}.
 
 
 
