@@ -32,7 +32,7 @@ start_link() ->
 
 
 init([]) ->
-    {ok, null}.
+    {ok, null, 0}.
 
 
 handle_cast(die, _State) ->
@@ -45,7 +45,11 @@ handle_call(echo, _Rrom, _State) ->
     {reply, echo, _State}.
 
 
-handle_info(_Request, _State) ->
+%% handle_info(_Request, _State) ->
+%%     {noreply, _State}.
+
+handle_info(timeout, _State) ->
+    receive X -> io:format("receive: ~p ~n", [X]) end,
     {noreply, _State}.
 
 
