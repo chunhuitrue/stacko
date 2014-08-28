@@ -68,12 +68,19 @@ init([]) ->
                   {tcp_stack_gc, start_link, []},
                   permanent,
                   brutal_kill,
-                  supervisor,
+                  worker,
                   [tcp_stack_gc]},
+
+    TcpStackSup = {tcp_stack_sup,
+                   {tcp_stack_sup, start_link, []},
+                   permanent,
+                   2000,
+                   supervisor,
+                   [tcp_stack_sup]},
 
     {ok, 
      {{one_for_one, 5, 5}, 
-      [NicwriteSpec, DispatcherSpec, ArpSpec, IcmpSpec, TcpPortSup, TcpStackGc]}}.
+      [NicwriteSpec, DispatcherSpec, ArpSpec, IcmpSpec, TcpPortSup, TcpStackGc, TcpStackSup]}}.
 
 
 

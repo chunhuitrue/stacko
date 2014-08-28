@@ -28,23 +28,25 @@
 
 
 start_link() ->
-    gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
+    gen_server:start_link(?MODULE, [], []).
 
 
 init([]) ->
     {ok, null}.
 
 
-handle_cast(_Request, _State) ->
-    {noreply, null}.
+handle_cast(die, _State) ->
+    io:format("tcp stack: ~p die~n", [self()]),
+    supervisor:terminate_child(tcp_stack_sup, self()),
+    {noreply, _State}.
 
 
-handle_call(_Request, _Rrom, _State) ->
-    {noreply, null}.
+handle_call(echo, _Rrom, _State) ->
+    {reply, echo, _State}.
 
 
 handle_info(_Request, _State) ->
-    {noreply, null}.
+    {noreply, _State}.
 
 
 terminate(_Reason, _STate) ->
@@ -52,4 +54,4 @@ terminate(_Reason, _STate) ->
 
 
 code_change(_Oldv, _State, _Extra) ->
-    {ok, null}.
+    {ok, _State}.

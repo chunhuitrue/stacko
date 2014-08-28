@@ -24,6 +24,8 @@
 -export([terminate/2]).
 -export([code_change/3]).
 
+-export([test/1]).
+
 
 
 start_link() ->
@@ -54,3 +56,10 @@ code_change(_Oldv, State, _Extra) ->
     {ok, State}.
 
 
+test(Pid) ->
+    case catch gen_server:call(Pid, echo) of
+        {'EXIT', {noproc, _}} ->
+            io:format("Pid: ~p must dead. ~n", [Pid]);
+        echo ->
+            io:format("Pid: ~p is alive.~n", [Pid])
+    end.
