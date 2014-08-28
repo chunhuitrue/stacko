@@ -14,42 +14,41 @@
 
 
 
--module(tcp_stack).
+-module(tcp_stack_sup).
 
--behaviour(gen_server).
--export([init/1]).
+-behaviour(supervisor).
+
 -export([start_link/0]).
--export([handle_cast/2]).
--export([handle_call/3]).
--export([handle_info/2]).
--export([terminate/2]).
--export([code_change/3]).
+-export([init/1]).
+%% -export([start_child/4]).
+-export([start_child/0]).
+
+-define(SERVER, ?MODULE).
 
 
 
 start_link() ->
-    gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
+    supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 
 init([]) ->
-    {ok, null}.
+    TcpStack = {tcp_stack,
+                {tcp_stack, start_link, []},
+                temporary,
+                brutal_kill,
+                worker,
+                [tcp_stack]},
+
+    {ok, {{simple_one_for_one, 0, 1}, [TcpStack]}}.
 
 
-handle_cast(_Request, _State) ->
-    {noreply, null}.
+%% remote address: Sip Sport
+%% local address: Dip Dport
+%% start_child(Sip, Sport, Dip, Dport) ->
+%%     supervisor:start_child(?SERVER, [Sip, Sport, Dip, Dport]).
+
+start_child() ->
+    supervisor:start_child(?SERVER, []).
 
 
-handle_call(_Request, _Rrom, _State) ->
-    {noreply, null}.
 
-
-handle_info(_Request, _State) ->
-    {noreply, null}.
-
-
-terminate(_Reason, _STate) ->
-    ok.
-
-
-code_change(_Oldv, _State, _Extra) ->
-    {ok, null}.
