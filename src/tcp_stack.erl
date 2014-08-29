@@ -18,38 +18,38 @@
 
 -behaviour(gen_server).
 -export([init/1]).
--export([start_link/0]).
+-export([start_link/4]).
 -export([handle_cast/2]).
 -export([handle_call/3]).
 -export([handle_info/2]).
 -export([terminate/2]).
 -export([code_change/3]).
 
+-record(state, {sip, sport, dip, dport}).
 
 
-start_link() ->
-    gen_server:start_link(?MODULE, [], []).
+
+%% remote address: Sip Sport
+%% local address: Dip Dport
+start_link(Sip, Sport, Dip, Dport) ->
+    gen_server:start_link(?MODULE, [Sip, Sport, Dip, Dport], []).
 
 
-init([]) ->
-    {ok, null, 0}.
+init([Sip, Sport, Dip, Dport]) ->
+    {ok, #state{sip = Sip, sport = Sport, dip = Dip, dport = Dport}}.
 
 
-handle_cast(die, _State) ->
+handle_cast(die, State) ->
     io:format("tcp stack: ~p die~n", [self()]),
     supervisor:terminate_child(tcp_stack_sup, self()),
-    {noreply, _State}.
+    {noreply, State}.
 
 
 handle_call(echo, _Rrom, _State) ->
     {reply, echo, _State}.
 
 
-%% handle_info(_Request, _State) ->
-%%     {noreply, _State}.
-
-handle_info(timeout, _State) ->
-    receive X -> io:format("receive: ~p ~n", [X]) end,
+handle_info(_Request, _State) ->
     {noreply, _State}.
 
 

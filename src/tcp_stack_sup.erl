@@ -20,8 +20,7 @@
 
 -export([start_link/0]).
 -export([init/1]).
-%% -export([start_child/4]).
--export([start_child/0]).
+-export([start_child/4]).
 
 -define(SERVER, ?MODULE).
 
@@ -44,11 +43,8 @@ init([]) ->
 
 %% remote address: Sip Sport
 %% local address: Dip Dport
-%% start_child(Sip, Sport, Dip, Dport) ->
-%%     supervisor:start_child(?SERVER, [Sip, Sport, Dip, Dport]).
-
-start_child() ->
-    supervisor:start_child(?SERVER, []).
+start_child(Sip, Sport, Dip, Dport) ->
+    supervisor:start_child(?SERVER, [Sip, Sport, Dip, Dport]).
 
 
 
