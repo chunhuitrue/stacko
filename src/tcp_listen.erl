@@ -56,7 +56,6 @@ handle_call(_Request, _From, State) ->
 handle_info({'DOWN', UserRef, process, _Pid, _Reason}, State) ->
     close(UserRef),
     {noreply, State};
-
 handle_info(timeout, State) ->
     UserRef = erlang:monitor(process, State#state.userpid),
     io:format("tcp_listen timeout.userref: ~p~n", [UserRef]),
