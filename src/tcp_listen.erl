@@ -53,7 +53,7 @@ handle_cast({close, _UserPid}, State) ->
     #state{userref = UserRef} = State,
     close(UserRef),
     {noreply, State};
-handle_cast({syn, _Packet}, State) when State#state.backlog > State#state.backlogarg ->
+handle_cast({syn, _Packet}, State) when State#state.backlog >= State#state.backlogarg ->
     io:format("tcp_listen: get a syn packet. but backlog is full.~n"),
     {noreply, State};
 handle_cast({syn, Packet}, State) ->
@@ -90,5 +90,5 @@ code_change(_Oldv, State, _Extra) ->
     {ok, State}.
 
 
-syn_packet(Pid, Packet) ->
+syn_packet(Pid, {syn, Packet}) ->
     gen_server:cast(Pid, {syn, Packet}).

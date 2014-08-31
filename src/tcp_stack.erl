@@ -41,8 +41,26 @@ init([ListenPid]) ->
     {ok, #state{listenpid = ListenPid}}.
 
 
-handle_cast({syn, _Packet}, State) ->
-    io:format("tcp_stack: ~p get a syn packet.~n", [self()]),
+handle_cast({syn, Packet}, State) ->
+    io:format("tcp_stack: 11111.~n"),
+
+    <<_DMAC:48, _SMAC:48, _Type:16/integer-unsigned-big, % mac header
+      _Version:4, _Head:68, _Protocol:8, _HeaderCheckSum:16, % ip header
+      SipD1:8, SipD2:8, SipD3:8, SipD4:8, 
+      DipD1:8, DipD2:8, DipD3:8, DipD4:8, 
+      Sport:16/integer-unsigned-big, Dport:16/integer-unsigned-big, % tcp header
+      _SeqNum:32,
+      _AckNum:32,
+      _HeaderLenth:4, _Reserved:6, _URG:1, _ACK:1, _PSH:1, _RST:1, _SYN:1, _FIN:1, _WinSize:16,
+      _Rest/binary>> = Packet,
+    
+    Sip = {SipD1, SipD2, SipD3, SipD4},
+    Dip = {DipD1, DipD2, DipD3, DipD4},
+
+    tables:insert_stack({Sip, Sport, Dip, Dport}, self()),
+    io:format("tcp_stack: get a syn packet. insert_stack: Sip: ~p, Sport: ~p, Pid: ~p~n", [Sip, Sport, self()]),
+    io:format("Dip: ~p, Dport: ~p~n", [Dip, Dport]),
+
     {noreply, State}.
 
 
@@ -62,5 +80,5 @@ code_change(_Oldv, _State, _Extra) ->
     {ok, _State}.
 
 
-to_tcp_stack(Packet, Pid) ->
-    gen_server:cast(Pid, Packet).
+to_tcp_stack({syn, Packet}, Pid) ->
+    gen_server:cast(Pid, {syn, Packet}).
