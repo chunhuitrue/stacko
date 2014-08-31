@@ -53,7 +53,8 @@ handle_call(_Request, _From, State) ->
     {noreply, State}.
 
 
-handle_info({'DOWN', UserRef, process, _Pid, _Reason}, State) ->
+handle_info({'DOWN', UserRef, process, UserPid, _Reason}, State) when UserPid == State#state.userpid ->
+    io:format("tcp_listen user: ~p is down. I'm going to die.~n", [UserPid]),
     close(UserRef),
     {noreply, State};
 handle_info(timeout, State) ->
