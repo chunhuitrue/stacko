@@ -24,6 +24,8 @@
 -export([terminate/2]).
 -export([code_change/3]).
 
+-export([syn_packet/2]).
+
 -record(state, {port, backlog, userpid, userref}).
 
 
@@ -46,6 +48,9 @@ close(UserRef) ->
 handle_cast({close, _UserPid}, State) ->
     #state{userref = UserRef} = State,
     close(UserRef),
+    {noreply, State};
+handle_cast({syn, _Packet}, State) ->
+    io:format("tcp_listen. get a syn packet.~n"),
     {noreply, State}.
 
 
@@ -71,3 +76,5 @@ code_change(_Oldv, State, _Extra) ->
     {ok, State}.
 
 
+syn_packet(Pid, Packet) ->
+    gen_server:cast(Pid, {syn, Packet}).

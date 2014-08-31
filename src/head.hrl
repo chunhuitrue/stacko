@@ -16,7 +16,6 @@
 
 -define(DISPATCHER_NUM, 3).
 
-
 -define(MINI_ETH_FRAME, 64).
 -define(TYPE_ARP, 16#0806).
 -define(TYPE_IP, 16#0800).

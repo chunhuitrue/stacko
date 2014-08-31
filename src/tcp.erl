@@ -21,6 +21,8 @@
 -export([listen/2]).
 -export([close/1]).
 
+-export([port_is_listening/1]).
+
 
 
 print_listen('$end_of_table') ->
@@ -49,3 +51,12 @@ listen(Port, _Options) ->
 close(ListenPid) ->
     gen_server:cast(ListenPid, {close, self()}).
 
+
+
+port_is_listening(Port) ->
+    case tables:lookup_listen(Port) of
+        [] ->
+            {false, null};
+        [{Port, Pid}] ->
+            {true, Pid}
+    end.
