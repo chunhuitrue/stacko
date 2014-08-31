@@ -20,7 +20,7 @@
 
 -export([start_link/0]).
 -export([init/1]).
--export([start_child/4]).
+-export([start_child/1]).
 
 -define(SERVER, ?MODULE).
 
@@ -41,10 +41,8 @@ init([]) ->
     {ok, {{simple_one_for_one, 0, 1}, [TcpStack]}}.
 
 
-%% remote address: Sip Sport
-%% local address: Dip Dport
-start_child(Sip, Sport, Dip, Dport) ->
-    supervisor:start_child(?SERVER, [Sip, Sport, Dip, Dport]).
+start_child(ListenPid) ->
+    supervisor:start_child(?SERVER, [ListenPid]).
 
 
 

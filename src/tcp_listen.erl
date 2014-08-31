@@ -26,7 +26,7 @@
 
 -export([syn_packet/2]).
 
--record(state, {port, backlog, userpid, userref}).
+-record(state, {port, backlogarg, backlog, userpid, userref}).
 
 
 
@@ -37,7 +37,11 @@ start_link(Port, Backlog, UserPid) ->
 
 
 init([Port, Backlog, UserPid]) ->
-    {ok, #state{port = Port, backlog = Backlog, userpid = UserPid, userref = null}, 0}.
+    {ok, #state{port = Port, 
+                backlogarg = Backlog, 
+                backlog = 0, 
+                userpid = UserPid, 
+                userref = null}, 0}.
 
 
 close(UserRef) ->
@@ -49,22 +53,32 @@ handle_cast({close, _UserPid}, State) ->
     #state{userref = UserRef} = State,
     close(UserRef),
     {noreply, State};
-handle_cast({syn, _Packet}, State) ->
-    io:format("tcp_listen. get a syn packet.~n"),
-    {noreply, State}.
+handle_cast({syn, _Packet}, State) when State#state.backlog > State#state.backlogarg ->
+    io:format("tcp_listen: get a syn packet. but backlog is full.~n"),
+    {noreply, State};
+handle_cast({syn, Packet}, State) ->
+    %% io:format("tcp_listen: get a syn packet.~n"),
+    {ok, StackPid} = tcp_stack_sup:start_child(self()),
+    erlang:monitor(process, StackPid),
+    tcp_stack:to_tcp_stack({syn, Packet}, StackPid),
+    {noreply, State#state{backlog = State#state.backlog + 1}}.
 
 
 handle_call(_Request, _From, State) ->
     {noreply, State}.
 
 
-handle_info({'DOWN', UserRef, process, UserPid, _Reason}, State) when UserPid == State#state.userpid ->
-    io:format("tcp_listen user: ~p is down. I'm going to die.~n", [UserPid]),
+handle_info({'DOWN', UserRef, process, UserPid, _Reason}, % user listen process is down
+            State) when UserPid == State#state.userpid ->
+    io:format("tcp_listen: user: ~p is down. I'm going to die.~n", [UserPid]),
     close(UserRef),
     {noreply, State};
+handle_info({'DOWN', _UserRef, process, UserPid, _Reason}, State) -> % tcp stack process down
+    io:format("tcp_listen: tcp stack process: ~p is down. so backlog - 1.~n", [UserPid]),
+    {noreply, State#state{backlog = State#state.backlog - 1}};
 handle_info(timeout, State) ->
     UserRef = erlang:monitor(process, State#state.userpid),
-    io:format("tcp_listen timeout.userref: ~p~n", [UserRef]),
+    io:format("tcp_listen: init timeout.userref: ~p~n", [UserRef]),
     {noreply, State#state{userref = UserRef}}.
 
 

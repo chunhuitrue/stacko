@@ -18,39 +18,40 @@
 
 -behaviour(gen_server).
 -export([init/1]).
--export([start_link/4]).
+-export([start_link/1]).
 -export([handle_cast/2]).
 -export([handle_call/3]).
 -export([handle_info/2]).
 -export([terminate/2]).
 -export([code_change/3]).
 
--record(state, {sip, sport, dip, dport}).
+-export([to_tcp_stack/2]).
+
+-record(state, {listenpid}).
 
 
 
 %% remote address: Sip Sport
 %% local address: Dip Dport
-start_link(Sip, Sport, Dip, Dport) ->
-    gen_server:start_link(?MODULE, [Sip, Sport, Dip, Dport], []).
+start_link(ListenPid) ->
+    gen_server:start_link(?MODULE, [ListenPid], []).
 
 
-init([Sip, Sport, Dip, Dport]) ->
-    {ok, #state{sip = Sip, sport = Sport, dip = Dip, dport = Dport}}.
+init([ListenPid]) ->
+    {ok, #state{listenpid = ListenPid}}.
 
 
-handle_cast(die, State) ->
-    io:format("tcp stack: ~p die~n", [self()]),
-    supervisor:terminate_child(tcp_stack_sup, self()),
+handle_cast({syn, _Packet}, State) ->
+    io:format("tcp_stack: ~p get a syn packet.~n", [self()]),
     {noreply, State}.
 
 
-handle_call(echo, _Rrom, _State) ->
-    {reply, echo, _State}.
+handle_call(_Request, _Rrom, State) ->
+    {noreply, State}.
 
 
-handle_info(_Request, _State) ->
-    {noreply, _State}.
+handle_info(_Request, State) ->
+    {noreply, State}.
 
 
 terminate(_Reason, _STate) ->
@@ -59,3 +60,7 @@ terminate(_Reason, _STate) ->
 
 code_change(_Oldv, _State, _Extra) ->
     {ok, _State}.
+
+
+to_tcp_stack(Packet, Pid) ->
+    gen_server:cast(Pid, Packet).

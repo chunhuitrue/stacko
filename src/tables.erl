@@ -172,7 +172,8 @@ find_route(IP) ->
 
 
 %% tcp_listen table
-%% Port pid
+%% key: Port 
+%% val: Pid
 create_listen() ->
     ets:new(tcp_listen_table, [set, public, named_table, public]).
 
@@ -206,8 +207,8 @@ del_listen(Port) when is_integer(Port) ->
 
 %% tcp_stack table
 %% key: {Sip, Sport, Dip, Dport}
-%% local address: dip, dport 
 %% val: Pid
+%% local address: dip, dport 
 create_stack() ->
     ets:new(tcp_stack_table, [set, public, named_table, public]).
 
