@@ -41,6 +41,10 @@ init([ListenPid]) ->
     {ok, #state{listenpid = ListenPid}}.
 
 
+ready_accept(ListenPid) ->
+    gen_server:cast(ListenPid, {ready_accept, self()}).
+
+    
 handle_cast({syn, Packet}, State) ->
     io:format("tcp_stack: 11111.~n"),
 
@@ -62,8 +66,12 @@ handle_cast({syn, Packet}, State) ->
     io:format("Dip: ~p, Dport: ~p~n", [Dip, Dport]),
 
 
-    timer:sleep(6000),
-    2 = 3,
+
+    %% timer:sleep(6000),
+    %% 2 = 3,
+
+    ready_accept(State#state.listenpid),
+    
 
 
     {noreply, State}.

@@ -69,7 +69,13 @@ handle_cast({syn, Packet}, State) ->
     StackRef = erlang:monitor(process, StackPid),
     tcp_stack:to_tcp_stack({syn, Packet}, StackPid),
     {noreply, State#state{backlog = State#state.backlog + 1, 
-                          map = maps:put(StackPid, StackRef, State#state.map)}}.
+                          map = maps:put(StackPid, StackRef, State#state.map)}};
+
+
+handle_cast({ready_accept, Pid}, State) ->
+    io:format("tcp_listen: stack: ~p established, add to queue: ~p~n", 
+              [Pid, State#state.queue]),
+    {noreply, State#state{queue = [Pid | State#state.queue]}}.
 
 
 handle_call(_Request, _From, State) ->
