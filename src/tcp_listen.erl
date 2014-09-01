@@ -57,9 +57,12 @@ handle_cast({close, _UserPid}, State) ->
     #state{userref = UserRef} = State,
     close(UserRef),
     {noreply, State};
+
+
 handle_cast({syn, _Packet}, State) when State#state.backlog >= State#state.backlogarg ->
     io:format("tcp_listen: get a syn packet. but backlog is full.~n"),
     {noreply, State};
+
 handle_cast({syn, Packet}, State) ->
     %% io:format("tcp_listen: get a syn packet.~n"),
     {ok, StackPid} = tcp_stack_sup:start_child(self()),
@@ -82,12 +85,15 @@ handle_info({'DOWN', UserRef, process, UserPid, _Reason}, % user listen process 
     io:format("tcp_listen: user: ~p is down. I'm going to die.~n", [UserPid]),
     close(UserRef),
     {noreply, State};
+
 handle_info({'DOWN', _Ref, process, StackPid, _Reason}, State) -> % tcp stack process down
     io:format("tcp_listen: tcp stack process: ~p is down. so backlog - 1.~n", [StackPid]),
     {noreply, 
      State#state{backlog = State#state.backlog - 1,
                  map = maps:remove(StackPid, State#state.map),
                  queue = remove_pid(StackPid, State#state.queue)}};
+
+
 handle_info(timeout, State) ->
     UserRef = erlang:monitor(process, State#state.userpid),
     io:format("tcp_listen: init timeout.userref: ~p~n", [UserRef]),
