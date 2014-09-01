@@ -61,6 +61,11 @@ handle_cast({syn, Packet}, State) ->
     io:format("tcp_stack: get a syn packet. insert_stack: Sip: ~p, Sport: ~p, Pid: ~p~n", [Sip, Sport, self()]),
     io:format("Dip: ~p, Dport: ~p~n", [Dip, Dport]),
 
+
+    timer:sleep(6000),
+    2 = 3,
+
+
     {noreply, State}.
 
 

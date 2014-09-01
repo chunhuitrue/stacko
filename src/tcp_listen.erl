@@ -26,7 +26,7 @@
 
 -export([syn_packet/2]).
 
--record(state, {port, backlogarg, backlog, userpid, userref}).
+-record(state, {port, backlogarg, backlog, userpid, userref, map, queue}).
 
 
 
@@ -37,11 +37,15 @@ start_link(Port, Backlog, UserPid) ->
 
 
 init([Port, Backlog, UserPid]) ->
-    {ok, #state{port = Port, 
-                backlogarg = Backlog, 
-                backlog = 0, 
-                userpid = UserPid, 
-                userref = null}, 0}.
+    {ok,
+     #state{port = Port, 
+            backlogarg = Backlog, 
+            backlog = 0, 
+            userpid = UserPid, 
+            userref = null,
+            map = maps:new(),
+            queue = []}, 
+     0}.
 
 
 close(UserRef) ->
@@ -59,13 +63,18 @@ handle_cast({syn, _Packet}, State) when State#state.backlog >= State#state.backl
 handle_cast({syn, Packet}, State) ->
     %% io:format("tcp_listen: get a syn packet.~n"),
     {ok, StackPid} = tcp_stack_sup:start_child(self()),
-    erlang:monitor(process, StackPid),
+    StackRef = erlang:monitor(process, StackPid),
     tcp_stack:to_tcp_stack({syn, Packet}, StackPid),
-    {noreply, State#state{backlog = State#state.backlog + 1}}.
+    {noreply, State#state{backlog = State#state.backlog + 1, 
+                          map = maps:put(StackPid, StackRef, State#state.map)}}.
 
 
 handle_call(_Request, _From, State) ->
     {noreply, State}.
+
+
+remove_pid(Pid, List) ->
+    lists:filter(fun(Elem) -> Elem =/= Pid end, List).
 
 
 handle_info({'DOWN', UserRef, process, UserPid, _Reason}, % user listen process is down
@@ -73,9 +82,12 @@ handle_info({'DOWN', UserRef, process, UserPid, _Reason}, % user listen process 
     io:format("tcp_listen: user: ~p is down. I'm going to die.~n", [UserPid]),
     close(UserRef),
     {noreply, State};
-handle_info({'DOWN', _UserRef, process, UserPid, _Reason}, State) -> % tcp stack process down
-    io:format("tcp_listen: tcp stack process: ~p is down. so backlog - 1.~n", [UserPid]),
-    {noreply, State#state{backlog = State#state.backlog - 1}};
+handle_info({'DOWN', _Ref, process, StackPid, _Reason}, State) -> % tcp stack process down
+    io:format("tcp_listen: tcp stack process: ~p is down. so backlog - 1.~n", [StackPid]),
+    {noreply, 
+     State#state{backlog = State#state.backlog - 1,
+                 map = maps:remove(StackPid, State#state.map),
+                 queue = remove_pid(StackPid, State#state.queue)}};
 handle_info(timeout, State) ->
     UserRef = erlang:monitor(process, State#state.userpid),
     io:format("tcp_listen: init timeout.userref: ~p~n", [UserRef]),
