@@ -19,6 +19,7 @@
 
 -export([listen/2]).
 -export([close/1]).
+-export([accept/1]).
 
 -export([init_script/0]).
 -export([release_conf/0]).
@@ -62,6 +63,10 @@ listen(Port, Options) ->
 
 close(Socket) ->
     tcp:close(Socket).
+
+
+accept(Socket) ->
+    tcp:accept(Socket).
 
 
 init_script() ->

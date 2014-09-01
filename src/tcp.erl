@@ -20,6 +20,7 @@
 
 -export([listen/2]).
 -export([close/1]).
+-export([accept/1]).
 
 -export([port_is_listening/1]).
 
@@ -40,17 +41,25 @@ netstat() ->
 
 listen(Port, _Options) ->
     Backlog = 3,
-    case gen_server:call(tcp_port_res, {listen, Port, Backlog, self()}) of
-        {ok, ListenPid} ->
-            {ok, ListenPid};
+    case catch gen_server:call(tcp_port_res, {listen, Port, Backlog, self()}) of
+        {'EXIT', {noproc, _}} ->
+            {error, noproc};
         Ret ->
             Ret
     end.
     
 
-close(ListenPid) ->
-    gen_server:cast(ListenPid, {close, self()}).
+close(Socket) ->
+    gen_server:cast(Socket, {close, self()}).
 
+
+accept(ListenSocket) ->
+    case catch gen_server:call(ListenSocket, {accept, self()}, infinity) of
+        {'EXIT', {noproc, _}} ->
+            {error, closed};
+        Ret ->
+            Ret
+    end.
 
 
 port_is_listening(Port) ->

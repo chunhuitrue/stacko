@@ -26,7 +26,7 @@
 
 -export([syn_packet/2]).
 
--record(state, {port, backlogarg, backlog, userpid, userref, map, queue}).
+-record(state, {port, backlogarg, backlog, userpid, userref, stackmap, queue, wait_accepts}).
 
 
 
@@ -43,8 +43,9 @@ init([Port, Backlog, UserPid]) ->
             backlog = 0, 
             userpid = UserPid, 
             userref = null,
-            map = maps:new(),
-            queue = []}, 
+            stackmap = maps:new(),
+            queue = [],
+            wait_accepts = []}, 
      0}.
 
 
@@ -69,17 +70,40 @@ handle_cast({syn, Packet}, State) ->
     StackRef = erlang:monitor(process, StackPid),
     tcp_stack:to_tcp_stack({syn, Packet}, StackPid),
     {noreply, State#state{backlog = State#state.backlog + 1, 
-                          map = maps:put(StackPid, StackRef, State#state.map)}};
+                          stackmap = maps:put(StackPid, StackRef, State#state.stackmap)}};
 
 
-handle_cast({ready_accept, Pid}, State) ->
-    io:format("tcp_listen: stack: ~p established, add to queue: ~p~n", 
-              [Pid, State#state.queue]),
-    {noreply, State#state{queue = [Pid | State#state.queue]}}.
+handle_cast({ready_accept, StackPid}, State) when State#state.wait_accepts == [] ->
+    io:format("tcp_listen: stack: ~p ready to be accept, wait_accepts is empty. add to queue: ~p~n", [StackPid, State#state.queue]),
+    {noreply, State#state{queue = [StackPid | State#state.queue]}};
+
+handle_cast({ready_accept, StackPid}, State) ->
+    io:format("tcp_listen: stack: ~p ready to be accept, wait_accepts is not empty. ~n", 
+              [StackPid]),
+    StackRef = maps:get(StackPid, State#state.stackmap),
+    erlang:demonitor(StackRef),
+    Tmp = lists:reverse(State#state.wait_accepts),
+    AcceptRef = erlang:hd(Tmp),
+    gen_server:reply(AcceptRef, {ok, StackPid}),
+    {noreply, State#state{backlog = State#state.backlog - 1,
+                          stackmap = maps:remove(StackPid, State#state.stackmap),
+                          wait_accepts = lists:reverse(erlang:tl(Tmp))}}.
 
 
-handle_call(_Request, _From, State) ->
-    {noreply, State}.
+handle_call({accept, _AcceptPid}, From, State) when State#state.queue == [] ->
+    io:format("tcp_listen: no link to accept.~n"),
+    {noreply, State#state{wait_accepts = [From | State#state.wait_accepts]}};
+
+handle_call({accept, _AcceptPid}, _From, State) ->
+    TmpQueue = lists:reverse(State#state.queue),
+    StackPid = erlang:hd(TmpQueue),
+    StackRef = maps:get(StackPid, State#state.stackmap),
+    erlang:demonitor(StackRef),
+    {reply, 
+     {ok, StackPid}, 
+     State#state{backlog = State#state.backlog - 1,
+                 stackmap = maps:remove(StackPid, State#state.stackmap),
+                 queue = lists:reverse(erlang:tl(TmpQueue))}}.
 
 
 remove_pid(Pid, List) ->
@@ -96,7 +120,7 @@ handle_info({'DOWN', _Ref, process, StackPid, _Reason}, State) -> % tcp stack pr
     io:format("tcp_listen: tcp stack process: ~p is down. so backlog - 1.~n", [StackPid]),
     {noreply, 
      State#state{backlog = State#state.backlog - 1,
-                 map = maps:remove(StackPid, State#state.map),
+                 stackmap = maps:remove(StackPid, State#state.stackmap),
                  queue = remove_pid(StackPid, State#state.queue)}};
 
 

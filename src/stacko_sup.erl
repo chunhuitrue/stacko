@@ -35,13 +35,6 @@ init([]) ->
                     worker,                            % Type
                     [nic_out]},                        % ModuleList
 
-    DispatcherSpec = {dispatcher_sup,                   % id
-                      {dispatcher_sup, start_link, []}, % {Module, Function, Arguments}
-                      permanent,                        % Restart
-                      brutal_kill,                      % Shutdown
-                      supervisor,                       % Type
-                      [dispatcher_sup]},                % ModuleList
-
     IcmpSpec = {icmp,                  % id
                {icmp, start_link, []}, % {Module, Function, Arguments}
                permanent,              % Restart
@@ -56,13 +49,19 @@ init([]) ->
                worker,                   % Type
                [arp]},                   % ModuleList
 
-
     TcpPortSup = {tcp_port_sup,
                   {tcp_port_sup, start_link, []},
                   permanent,
                   2000,
                   supervisor,
                   [tcp_port_sup]},
+
+    Dispatcher = {dispatcher_sup,                   % id
+                  {dispatcher_sup, start_link, []}, % {Module, Function, Arguments}
+                  permanent,                        % Restart
+                  brutal_kill,                      % Shutdown
+                  supervisor,                       % Type
+                  [dispatcher_sup]},                % ModuleList
 
     TcpStackGc = {tcp_stack_gc,
                   {tcp_stack_gc, start_link, []},
@@ -80,7 +79,7 @@ init([]) ->
 
     {ok, 
      {{one_for_one, 5, 5}, 
-      [NicwriteSpec, DispatcherSpec, ArpSpec, IcmpSpec, TcpPortSup, TcpStackGc, TcpStackSup]}}.
+      [NicwriteSpec, ArpSpec, IcmpSpec, TcpPortSup, Dispatcher, TcpStackGc, TcpStackSup]}}.
 
 
 
