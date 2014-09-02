@@ -14,6 +14,14 @@
 
 
 
+-ifdef(debug).
+-define(DBP(Str), io:format(Str)).
+-define(DBP(Str, Args), io:format(Str, Args)).
+-else.
+-define(DBP(Str), ok).
+-define(DBP(Str, Args), ok).
+-endif.
+
 -define(DISPATCHER_NUM, 3).
 
 -define(MINI_ETH_FRAME, 64).

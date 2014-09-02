@@ -15,6 +15,8 @@
 
 -module(tcp_listen).
 
+-include("head.hrl").
+
 -behaviour(gen_server).
 -export([init/1]).
 -export([start_link/3]).
@@ -31,8 +33,8 @@
 
 
 start_link(Port, Backlog, UserPid) ->
-    io:format("tcp_listen start. port: ~p, backlog: ~p, userpid: ~p~n", 
-              [Port, Backlog, UserPid]),
+    ?DBP("tcp_listen start. port: ~p, backlog: ~p, userpid: ~p~n", 
+         [Port, Backlog, UserPid]),
     gen_server:start_link(?MODULE, [Port, Backlog, UserPid], []).
 
 
@@ -49,11 +51,11 @@ init([Port, Backlog, UserPid]) ->
 
 
 handle_cast({syn, _Packet}, State) when State#state.backlog >= State#state.backlogarg ->
-    io:format("tcp_listen: get a syn packet. but backlog is full.~n"),
+    ?DBP("tcp_listen: get a syn packet. but backlog is full.~n"),
     {noreply, State};
 
 handle_cast({syn, Packet}, State) ->
-    %% io:format("tcp_listen: get a syn packet.~n"),
+    %% ?DBP("tcp_listen: get a syn packet.~n"),
     {ok, StackPid} = tcp_stack_sup:start_child(self()),
     StackRef = erlang:monitor(process, StackPid),
     tcp_stack:to_tcp_stack({syn, Packet}, StackPid),
@@ -61,11 +63,11 @@ handle_cast({syn, Packet}, State) ->
                           stackmap = maps:put(StackPid, StackRef, State#state.stackmap)}};
 
 handle_cast({ready_accept, StackPid}, State) when State#state.wait_accepts == [] ->
-    io:format("tcp_listen: stack: ~p ready to be accept, wait_accepts is empty. add to queue: ~p~n", [StackPid, State#state.queue]),
+    ?DBP("tcp_listen: stack: ~p ready to be accept, wait_accepts is empty. add to queue: ~p~n", [StackPid, State#state.queue]),
     {noreply, State#state{queue = [StackPid | State#state.queue]}};
 
 handle_cast({ready_accept, StackPid}, State) ->
-    io:format("tcp_listen: stack: ~p ready to be accept, wait_accepts is not empty. ~n", 
+    ?DBP("tcp_listen: stack: ~p ready to be accept, wait_accepts is not empty. ~n", 
               [StackPid]),
     StackRef = maps:get(StackPid, State#state.stackmap),
     erlang:demonitor(StackRef),
@@ -82,7 +84,7 @@ close() ->
 
 
 handle_call({accept, _AcceptPid}, From, State) when State#state.queue == [] ->
-    io:format("tcp_listen: no link to accept.~n"),
+    ?DBP("tcp_listen: no link to accept.~n"),
     {noreply, State#state{wait_accepts = [From | State#state.wait_accepts]}};
 
 handle_call({accept, _AcceptPid}, _From, State) ->
@@ -108,12 +110,12 @@ remove_pid(Pid, List) ->
 
 handle_info({'DOWN', _UserRef, process, UserPid, _Reason},
             State) when UserPid == State#state.userpid ->  % user listen process is down
-    io:format("tcp_listen: user: ~p is down. I'm going to die.~n", [UserPid]),
+    ?DBP("tcp_listen: user: ~p is down. I'm going to die.~n", [UserPid]),
     close(),
     {noreply, State};
 
 handle_info({'DOWN', _Ref, process, StackPid, _Reason}, State) -> % tcp stack process down
-    io:format("tcp_listen: tcp stack process: ~p is down. so backlog - 1.~n", [StackPid]),
+    ?DBP("tcp_listen: tcp stack process: ~p is down. so backlog - 1.~n", [StackPid]),
     {noreply, 
      State#state{backlog = State#state.backlog - 1,
                  stackmap = maps:remove(StackPid, State#state.stackmap),
@@ -121,7 +123,7 @@ handle_info({'DOWN', _Ref, process, StackPid, _Reason}, State) -> % tcp stack pr
 
 handle_info(timeout, State) ->
     erlang:monitor(process, State#state.userpid),
-    io:format("tcp_listen: init timeout~n"),
+    ?DBP("tcp_listen: init timeout~n"),
     {noreply, State}.
 
 
