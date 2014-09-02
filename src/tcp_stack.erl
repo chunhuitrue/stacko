@@ -54,7 +54,6 @@ handle_cast({userpid, UserPid}, State) ->
     {noreply, State#state{userpid = UserPid,
                           userref = Ref}};
 
-
 handle_cast({syn, Packet}, State) ->
     io:format("tcp_stack: 11111.~n"),
 
@@ -89,6 +88,7 @@ handle_cast({syn, Packet}, State) ->
 
 handle_call({close, UserPid}, _From, State) when State#state.userpid == UserPid ->
     supervisor:terminate_child(tcp_stack_sup, self()),
+    %% to do fin_wait_1 ...
     {reply, ok, State#state{userpid = null,
                             userref = null,
                             state = fin_wait_1}};

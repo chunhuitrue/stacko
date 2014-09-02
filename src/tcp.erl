@@ -58,9 +58,10 @@ accept(ListenSocket) ->
         {'EXIT', {noproc, _}} ->
             {error, closed};
         {ok, StackPid} ->
-            gen_server:cast(StackPid, {userpid, self()});
-        Ret ->
-            Ret
+            gen_server:cast(StackPid, {userpid, self()}),
+            {ok, StackPid};
+        _Ret ->
+            error
     end.
 
 
