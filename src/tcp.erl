@@ -50,13 +50,15 @@ listen(Port, _Options) ->
     
 
 close(Socket) ->
-    gen_server:cast(Socket, {close, self()}).
+    gen_server:call(Socket, {close, self()}, infinity).
 
 
 accept(ListenSocket) ->
     case catch gen_server:call(ListenSocket, {accept, self()}, infinity) of
         {'EXIT', {noproc, _}} ->
             {error, closed};
+        {ok, StackPid} ->
+            gen_server:cast(StackPid, {userpid, self()});
         Ret ->
             Ret
     end.

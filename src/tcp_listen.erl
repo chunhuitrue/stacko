@@ -26,7 +26,7 @@
 
 -export([syn_packet/2]).
 
--record(state, {port, backlogarg, backlog, userpid, userref, stackmap, queue, wait_accepts}).
+-record(state, {port, backlogarg, backlog, userpid, stackmap, queue, wait_accepts}).
 
 
 
@@ -42,22 +42,10 @@ init([Port, Backlog, UserPid]) ->
             backlogarg = Backlog, 
             backlog = 0, 
             userpid = UserPid, 
-            userref = null,
             stackmap = maps:new(),
             queue = [],
             wait_accepts = []}, 
      0}.
-
-
-close(UserRef) ->
-    erlang:demonitor(UserRef),
-    supervisor:terminate_child(tcp_listen_sup, self()).
-
-
-handle_cast({close, _UserPid}, State) ->
-    #state{userref = UserRef} = State,
-    close(UserRef),
-    {noreply, State};
 
 
 handle_cast({syn, _Packet}, State) when State#state.backlog >= State#state.backlogarg ->
@@ -71,7 +59,6 @@ handle_cast({syn, Packet}, State) ->
     tcp_stack:to_tcp_stack({syn, Packet}, StackPid),
     {noreply, State#state{backlog = State#state.backlog + 1, 
                           stackmap = maps:put(StackPid, StackRef, State#state.stackmap)}};
-
 
 handle_cast({ready_accept, StackPid}, State) when State#state.wait_accepts == [] ->
     io:format("tcp_listen: stack: ~p ready to be accept, wait_accepts is empty. add to queue: ~p~n", [StackPid, State#state.queue]),
@@ -90,6 +77,10 @@ handle_cast({ready_accept, StackPid}, State) ->
                           wait_accepts = lists:reverse(erlang:tl(Tmp))}}.
 
 
+close() ->
+    supervisor:terminate_child(tcp_listen_sup, self()).
+
+
 handle_call({accept, _AcceptPid}, From, State) when State#state.queue == [] ->
     io:format("tcp_listen: no link to accept.~n"),
     {noreply, State#state{wait_accepts = [From | State#state.wait_accepts]}};
@@ -103,17 +94,22 @@ handle_call({accept, _AcceptPid}, _From, State) ->
      {ok, StackPid}, 
      State#state{backlog = State#state.backlog - 1,
                  stackmap = maps:remove(StackPid, State#state.stackmap),
-                 queue = lists:reverse(erlang:tl(TmpQueue))}}.
+                 queue = lists:reverse(erlang:tl(TmpQueue))}};
+
+handle_call({close, _UserPid}, From, State) ->
+    gen_server:reply(From, ok),
+    close(),
+    {noreply, State}.
 
 
 remove_pid(Pid, List) ->
     lists:filter(fun(Elem) -> Elem =/= Pid end, List).
 
 
-handle_info({'DOWN', UserRef, process, UserPid, _Reason}, % user listen process is down
-            State) when UserPid == State#state.userpid ->
+handle_info({'DOWN', _UserRef, process, UserPid, _Reason},
+            State) when UserPid == State#state.userpid ->  % user listen process is down
     io:format("tcp_listen: user: ~p is down. I'm going to die.~n", [UserPid]),
-    close(UserRef),
+    close(),
     {noreply, State};
 
 handle_info({'DOWN', _Ref, process, StackPid, _Reason}, State) -> % tcp stack process down
@@ -123,11 +119,10 @@ handle_info({'DOWN', _Ref, process, StackPid, _Reason}, State) -> % tcp stack pr
                  stackmap = maps:remove(StackPid, State#state.stackmap),
                  queue = remove_pid(StackPid, State#state.queue)}};
 
-
 handle_info(timeout, State) ->
-    UserRef = erlang:monitor(process, State#state.userpid),
-    io:format("tcp_listen: init timeout.userref: ~p~n", [UserRef]),
-    {noreply, State#state{userref = UserRef}}.
+    erlang:monitor(process, State#state.userpid),
+    io:format("tcp_listen: init timeout~n"),
+    {noreply, State}.
 
 
 terminate(_Reason, _STate) ->

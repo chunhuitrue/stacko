@@ -27,7 +27,7 @@
 
 -export([to_tcp_stack/2]).
 
--record(state, {listenpid}).
+-record(state, {listenpid, userpid, userref, state}).
 
 
 
@@ -38,13 +38,23 @@ start_link(ListenPid) ->
 
 
 init([ListenPid]) ->
-    {ok, #state{listenpid = ListenPid}}.
+    {ok, #state{listenpid = ListenPid, 
+                userpid = null,
+                userref = null,
+                state = closed}}.
 
 
 ready_accept(ListenPid) ->
     gen_server:cast(ListenPid, {ready_accept, self()}).
 
-    
+
+handle_cast({userpid, UserPid}, State) ->
+    io:format("tcp_stack: ~p get user pid: ~p~n", [self(), UserPid]),
+    Ref = erlang:monitor(process, UserPid),
+    {noreply, State#state{userpid = UserPid,
+                          userref = Ref}};
+
+
 handle_cast({syn, Packet}, State) ->
     io:format("tcp_stack: 11111.~n"),
 
@@ -74,15 +84,27 @@ handle_cast({syn, Packet}, State) ->
     
 
 
-    {noreply, State}.
+    {noreply, State#state{state = syn_recv}}.
 
 
-handle_call(_Request, _Rrom, State) ->
-    {noreply, State}.
+handle_call({close, UserPid}, _From, State) when State#state.userpid == UserPid ->
+    supervisor:terminate_child(tcp_stack_sup, self()),
+    {reply, ok, State#state{userpid = null,
+                            userref = null,
+                            state = fin_wait_1}};
+
+handle_call({close, UserPid}, _From, State) when State#state.userpid =/= UserPid ->
+    {reply, {error, permission_denied}, State}.
 
 
-handle_info(_Request, State) ->
-    {noreply, State}.
+handle_info({'DOWN', _Ref, process, Pid, _Reason}, State) ->
+    io:format("tcp_stack: ~p. user app: ~p is donw.~n", [self(), Pid]),
+
+    supervisor:terminate_child(tcp_stack_sup, self()),
+
+    {noreply, State#state{userpid = null,
+                          userref = null,
+                          state = fin_wait_1}}.
 
 
 terminate(_Reason, _STate) ->

@@ -67,7 +67,7 @@ handle_info(timeout, _State) ->
     {noreply, _State};
     
 handle_info({'DOWN', _Ref, process, Pid, _Reason}, _State) ->
-    io:format("listen process is down. pid: ~p~n", [Pid]),
+    io:format("tcp_port_res: listen process is down. pid: ~p~n", [Pid]),
     tables:del_listen(Pid),
     {noreply, _State}.
 
