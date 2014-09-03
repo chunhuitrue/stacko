@@ -26,6 +26,7 @@
 -export([code_change/3]).
 
 -export([to_tcp_stack/2]).
+-export([query_state/1]).
 
 -record(state, {listenpid, userpid, userref, state}).
 
@@ -94,7 +95,11 @@ handle_call({close, UserPid}, _From, State) when State#state.userpid == UserPid 
                             state = fin_wait_1}};
 
 handle_call({close, UserPid}, _From, State) when State#state.userpid =/= UserPid ->
-    {reply, {error, permission_denied}, State}.
+    {reply, {error, permission_denied}, State};
+
+handle_call(query_state, _From, State) ->
+    {reply, {state, State#state.state}, State}.
+
 
 
 handle_info({'DOWN', _Ref, process, Pid, _Reason}, State) ->
@@ -117,3 +122,7 @@ code_change(_Oldv, _State, _Extra) ->
 
 to_tcp_stack({syn, Packet}, Pid) ->
     gen_server:cast(Pid, {syn, Packet}).
+
+
+query_state(Pid) ->
+    gen_server:call(Pid, query_state).

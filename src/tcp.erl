@@ -37,18 +37,25 @@ print_listen(First) ->
 
 
 print_stack({ForeignIP, ForeignPort, LocalIP, LocalPort}, Pid) ->
-    io:format("~p   ~p:~p      ~p:~p    ~p~n", 
-              [Pid, ForeignIP, ForeignPort, LocalIP, LocalPort, unknown]).
+    case catch tcp_stack:query_state(Pid) of 
+        {'EXIT', {noproc, _}} ->
+            ok;
+        {state, State} ->
+            io:format("~p   ~p:~p      ~p:~p    ~p~n", 
+                      [Pid, ForeignIP, ForeignPort, LocalIP, LocalPort, State]);
+        _ ->
+            ok
+    end.
 
 
 netstat() ->
     io:format("pid         local address             foreign address     state~n"),
     print_listen(ets:first(tcp_listen_table)),
-    ets:foldl(fun({Key, Val}, null) ->
+    ets:foldl(fun({Key, Val}, ok) ->
                       print_stack(Key, Val),
-                      null
+                      ok
               end,
-              null,
+              ok,
               tcp_stack_table).
 
 
