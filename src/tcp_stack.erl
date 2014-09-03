@@ -27,6 +27,7 @@
 
 -export([to_tcp_stack/2]).
 -export([query_state/1]).
+-export([check_alive/1]).
 
 -record(state, {listenpid, userpid, userref, state}).
 
@@ -76,12 +77,10 @@ handle_cast({syn, Packet}, State) ->
     io:format("Dip: ~p, Dport: ~p~n", [Dip, Dport]),
 
 
-
-    %% timer:sleep(6000),
-    %% 2 = 3,
-
     ready_accept(State#state.listenpid),
-    
+
+    %% timer:sleep(5000),
+    %% 2 = 3,
 
 
     {noreply, State#state{state = syn_recv}}.
@@ -98,7 +97,10 @@ handle_call({close, UserPid}, _From, State) when State#state.userpid =/= UserPid
     {reply, {error, permission_denied}, State};
 
 handle_call(query_state, _From, State) ->
-    {reply, {state, State#state.state}, State}.
+    {reply, {state, State#state.state}, State};
+
+handle_call(check_alive, _From, State) ->
+    {noreply, State}.
 
 
 
@@ -126,3 +128,7 @@ to_tcp_stack({syn, Packet}, Pid) ->
 
 query_state(Pid) ->
     gen_server:call(Pid, query_state).
+
+
+check_alive(Pid) ->
+    gen_server:call(Pid, check_alive).

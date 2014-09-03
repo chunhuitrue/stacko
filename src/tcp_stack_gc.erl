@@ -15,6 +15,8 @@
 
 -module(tcp_stack_gc).
 
+-include("head.hrl").
+
 -behaviour(gen_server).
 -export([init/1]).
 -export([start_link/0]).
@@ -24,8 +26,6 @@
 -export([terminate/2]).
 -export([code_change/3]).
 
--export([test/1]).
-
 
 
 start_link() ->
@@ -33,7 +33,7 @@ start_link() ->
 
 
 init([]) ->
-    {ok, null}.
+    {ok, null, 0}.
 
 
 handle_cast(_Request, _State) ->
@@ -44,7 +44,29 @@ handle_call(_Request, _From, _State) ->
     {noreply, _State}.
 
 
-handle_info(_Request, _State) ->
+stack_gc(Key, Pid) ->
+    case catch tcp_stack:check_alive(Pid) of
+        {'EXIT', {noproc, _}} ->
+            ?DBP("tcp_stack_gc del pid: ~p~n", [Pid]),
+            tables:del_stack(Key);
+        _ ->
+            ok
+    end.
+
+
+handle_info(timeout, _State) ->
+    erlang:send_after(?STACK_GC_TIME, self(), stack_gc),
+    {noreply, _State};
+
+handle_info(stack_gc, _State) ->
+    ets:foldl(fun({Key, Val}, ok) -> 
+                      stack_gc(Key, Val), 
+                      ok
+              end,
+              ok,
+              tcp_stack_table),
+
+    erlang:send_after(?STACK_GC_TIME, self(), stack_gc),
     {noreply, _State}.
 
 
@@ -55,11 +77,3 @@ terminate(_Reason, _STate) ->
 code_change(_Oldv, _State, _Extra) ->
     {ok, _State}.
 
-
-test(Pid) ->
-    case catch gen_server:call(Pid, echo) of
-        {'EXIT', {noproc, _}} ->
-            io:format("Pid: ~p must dead. ~n", [Pid]);
-        echo ->
-            io:format("Pid: ~p is alive.~n", [Pid])
-    end.
