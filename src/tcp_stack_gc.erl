@@ -52,8 +52,8 @@ terminate(_Reason, _STate) ->
     ok.
 
 
-code_change(_Oldv, State, _Extra) ->
-    {ok, State}.
+code_change(_Oldv, _State, _Extra) ->
+    {ok, _State}.
 
 
 test(Pid) ->
