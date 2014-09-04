@@ -23,8 +23,7 @@
 -endif.
 
 -define(DISPATCHER_NUM, 3).
-%% -define(STACK_GC_TIME, 10000).
--define(STACK_GC_TIME, 1000).
+-define(STACK_GC_TIME, 10000).
 
 -define(MINI_ETH_FRAME, 64).
 -define(TYPE_ARP, 16#0806).
