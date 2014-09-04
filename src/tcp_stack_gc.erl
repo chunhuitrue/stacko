@@ -49,7 +49,7 @@ stack_gc(Key, Pid) ->
         {'EXIT', {noproc, _}} ->
             ?DBP("tcp_stack_gc del pid: ~p~n", [Pid]),
             tables:del_stack(Key);
-        _ ->
+        _ ->         % return alive or timeout both ok
             ok
     end.
 

@@ -16,6 +16,8 @@
 
 -module(tcp_stack).
 
+-include("head.hrl").
+
 -behaviour(gen_server).
 -export([init/1]).
 -export([start_link/1]).
@@ -100,7 +102,7 @@ handle_call(query_state, _From, State) ->
     {reply, {state, State#state.state}, State};
 
 handle_call(check_alive, _From, State) ->
-    {noreply, State}.
+    {reply, alive, State}.
 
 
 
