@@ -48,6 +48,11 @@
 -export([insert_stack/2]).
 -export([del_stack/1]).
 
+-export([create_tcp_unuse_ports/0]).
+-export([lookup_tcp_unuse_ports/1]).
+-export([insert_tcp_unuse_ports/1]).
+-export([del_tcp_unuse_ports/1]).
+
 
 
 create_tables() ->
@@ -55,7 +60,8 @@ create_tables() ->
     create_arp(),
     create_nic(),
     create_route(),
-    create_stack().
+    create_stack(),
+    create_tcp_unuse_ports().
 
 
 %% nic tabe
@@ -223,3 +229,22 @@ insert_stack({Sip, Sport, Dip, Dport}, Pid) ->
 
 del_stack({Sip, Sport, Dip, Dport}) ->
     ets:delete(tcp_stack_table, {Sip, Sport, Dip, Dport}).
+
+
+%% unused tcp port
+create_tcp_unuse_ports() ->
+    Ret = ets:new(tcp_unuse_ports, [ordered_set, named_table, public]),
+    [insert_tcp_unuse_ports(N) || N <- lists:seq(0, 65535)],
+    Ret.
+
+
+lookup_tcp_unuse_ports(Port) ->
+    ets:lookup(tcp_unuse_ports, Port).
+
+
+insert_tcp_unuse_ports(Port) ->
+    ets:insert(tcp_unuse_ports, [{Port}]).
+
+
+del_tcp_unuse_ports(Port) ->
+    ets:delete(tcp_unuse_ports, {Port}).
