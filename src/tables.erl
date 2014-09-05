@@ -53,6 +53,11 @@
 -export([insert_tcp_unuse_ports/1]).
 -export([del_tcp_unuse_ports/1]).
 
+-export([create_tcp_used_ports/0]).
+-export([lookup_tcp_used_ports/1]).
+-export([insert_tcp_used_ports/2]).
+-export([del_tcp_used_ports/1]).
+
 
 
 create_tables() ->
@@ -247,4 +252,23 @@ insert_tcp_unuse_ports(Port) ->
 
 
 del_tcp_unuse_ports(Port) ->
-    ets:delete(tcp_unuse_ports, {Port}).
+    ets:delete(tcp_unuse_ports, Port).
+
+
+%% used tcp port
+%% key: port
+%% val: localIP
+create_tcp_used_ports() ->
+    ets:new(tcp_used_ports, [set, named_table, public]).
+
+
+lookup_tcp_used_ports(Port) ->
+    ets:lookup(tcp_used_ports, Port).
+
+
+insert_tcp_used_ports(Port, LocalIP) ->
+    ets:insert(tcp_used_ports, [{Port, LocalIP}]).
+
+
+del_tcp_used_ports(Port) ->
+    ets:delete(tcp_used_ports, Port).
