@@ -63,6 +63,13 @@ init([]) ->
                   supervisor,                       % Type
                   [dispatcher_sup]},                % ModuleList
 
+    TcpPortMgr = {tcp_port_mgr,
+                  {tcp_port_mgr, start_link, []},
+                  permanent,
+                  brutal_kill,
+                  worker,
+                  [tcp_port_mgr]},
+
     TcpStackGc = {tcp_stack_gc,
                   {tcp_stack_gc, start_link, []},
                   permanent,
@@ -79,7 +86,8 @@ init([]) ->
 
     {ok, 
      {{one_for_one, 5, 5}, 
-      [NicwriteSpec, ArpSpec, IcmpSpec, TcpPortSup, Dispatcher, TcpStackGc, TcpStackSup]}}.
+      [NicwriteSpec, ArpSpec, IcmpSpec, TcpPortSup, Dispatcher, TcpPortMgr,
+       TcpStackGc, TcpStackSup]}}.
 
 
 
