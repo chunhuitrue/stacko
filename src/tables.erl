@@ -53,6 +53,7 @@
 -export([insert_tcp_port/2]).
 -export([del_tcp_port/1]).
 -export([assign_tcp_port/0]).
+-export([assign_tcp_port/1]).
 -export([release_tcp_port/1]).
 
 
@@ -254,26 +255,36 @@ del_tcp_port(Port) ->
     ets:delete(tcp_port, Port).
 
 
-assign_tcp_port('$end_of_table') ->
+find_port('$end_of_table') ->
     {error, no_port};
-
-assign_tcp_port(First) ->
+find_port(First) ->
     case ets:lookup(tcp_port, First) of
         [{First, RefNum}] when RefNum == 0 ->
             {ok, First, RefNum};
         _ ->
-            assign_tcp_port(ets:next(tcp_port, First))
+            find_port(ets:next(tcp_port, First))
     end.
 
+
 assign_tcp_port() ->
-    case assign_tcp_port(ets:first(tcp_port)) of
+    case find_port(ets:first(tcp_port)) of
         {ok, Port, RefNum} ->
             ets:insert(tcp_port, [{Port, RefNum + 1}]),
             {ok, Port};
         Ret ->
             Ret
     end.
-            
+
+
+assign_tcp_port(Port) ->
+    case ets:lookup(tcp_port, Port) of
+        [{Port, RefNum}] when RefNum == 0 ->
+            ets:insert(tcp_port, [{Port, 1}]),
+            {ok, Port};
+        _ ->
+            {error, port_assigned}
+    end.
+
 
 release_tcp_port(Port) ->
     case ets:lookup(tcp_port, Port) of
