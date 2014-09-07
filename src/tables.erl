@@ -48,15 +48,12 @@
 -export([insert_stack/2]).
 -export([del_stack/1]).
 
--export([create_tcp_unuse_ports/0]).
--export([lookup_tcp_unuse_ports/1]).
--export([insert_tcp_unuse_ports/1]).
--export([del_tcp_unuse_ports/1]).
-
--export([create_tcp_used_ports/0]).
--export([lookup_tcp_used_ports/1]).
--export([insert_tcp_used_ports/2]).
--export([del_tcp_used_ports/1]).
+-export([create_tcp_port/0]).
+-export([lookup_tcp_port/1]).
+-export([insert_tcp_port/2]).
+-export([del_tcp_port/1]).
+-export([assign_tcp_port/0]).
+-export([release_tcp_port/1]).
 
 
 
@@ -66,7 +63,7 @@ create_tables() ->
     create_nic(),
     create_route(),
     create_stack(),
-    create_tcp_unuse_ports().
+    create_tcp_port().
 
 
 %% nic tabe
@@ -236,39 +233,53 @@ del_stack({Sip, Sport, Dip, Dport}) ->
     ets:delete(tcp_stack_table, {Sip, Sport, Dip, Dport}).
 
 
-%% unused tcp port
-create_tcp_unuse_ports() ->
-    Ret = ets:new(tcp_unuse_ports, [ordered_set, named_table, public]),
-    [insert_tcp_unuse_ports(N) || N <- lists:seq(0, 65535)],
+%% tcp port
+%% key: port
+%% val: RefNumber
+create_tcp_port() ->
+    Ret = ets:new(tcp_port, [ordered_set, named_table, public]),
+    [insert_tcp_port(Port, 0) || Port <- lists:seq(1, 65535)],
     Ret.
 
 
-lookup_tcp_unuse_ports(Port) ->
-    ets:lookup(tcp_unuse_ports, Port).
+lookup_tcp_port(Port) ->
+    ets:lookup(tcp_port, Port).
 
 
-insert_tcp_unuse_ports(Port) ->
-    ets:insert(tcp_unuse_ports, [{Port}]).
+insert_tcp_port(Port, RefNum) ->
+    ets:insert(tcp_port, [{Port, RefNum}]).
 
 
-del_tcp_unuse_ports(Port) ->
-    ets:delete(tcp_unuse_ports, Port).
+del_tcp_port(Port) ->
+    ets:delete(tcp_port, Port).
 
 
-%% used tcp port
-%% key: port
-%% val: localIP
-create_tcp_used_ports() ->
-    ets:new(tcp_used_ports, [set, named_table, public]).
+assign_tcp_port('$end_of_table') ->
+    {error, no_port};
 
+assign_tcp_port(First) ->
+    case ets:lookup(tcp_port, First) of
+        [{First, RefNum}] when RefNum == 0 ->
+            {ok, First, RefNum};
+        _ ->
+            assign_tcp_port(ets:next(tcp_port, First))
+    end.
 
-lookup_tcp_used_ports(Port) ->
-    ets:lookup(tcp_used_ports, Port).
+assign_tcp_port() ->
+    case assign_tcp_port(ets:first(tcp_port)) of
+        {ok, Port, RefNum} ->
+            ets:insert(tcp_port, [{Port, RefNum + 1}]),
+            {ok, Port};
+        Ret ->
+            Ret
+    end.
+            
 
-
-insert_tcp_used_ports(Port, LocalIP) ->
-    ets:insert(tcp_used_ports, [{Port, LocalIP}]).
-
-
-del_tcp_used_ports(Port) ->
-    ets:delete(tcp_used_ports, Port).
+release_tcp_port(Port) ->
+    case ets:lookup(tcp_port, Port) of
+        [{Port, RefNum}] when RefNum > 0 ->
+            ets:insert(tcp_port, [{Port, RefNum - 1}]),
+            ok;
+        _Ret ->
+            {error, repeat_release}
+    end.

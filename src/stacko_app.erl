@@ -16,8 +16,9 @@
 
 -module(stacko_app).
 
--behaviour(application).
+-include("head.hrl").
 
+-behaviour(application).
 -export([start/2, stop/1]).
 
 
@@ -29,6 +30,5 @@ start(_StartType, _StartArgs) ->
 
 
 stop(_State) ->
-    Ret = stacko:release_conf(),
-    io:format("release_conf: ~p~n", [Ret]).
+    stacko:release_conf().
 
