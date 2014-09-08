@@ -22,6 +22,8 @@
 -define(DBP(Str, Args), ok).
 -endif.
 
+-define(STATE, State#state).
+
 -define(DISPATCHER_NUM, 3).
 -define(STACK_GC_TIME, 10000).
 

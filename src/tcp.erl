@@ -21,11 +21,10 @@
 -export([netstat/0]).
 
 -export([listen/2]).
--export([close/1]).
 -export([accept/1]).
+-export([close/1]).
 
 -export([port_is_listening/1]).
-
 
 
 print_listen('$end_of_table') ->
@@ -60,8 +59,10 @@ netstat() ->
 
 
 listen(Port, _Options) ->
-    Backlog = 3,
-    case catch gen_server:call(tcp_port_res, {listen, Port, Backlog, self()}) of
+    case catch gen_server:call(tcp_port_mgr, {assign_tcp_port, Port}) of
+        {ok, Port} ->
+            Backlog = 3,
+            tcp_listen_sup:start_child(Port, Backlog, self());
         {'EXIT', {noproc, _}} ->
             {error, noproc};
         Ret ->
@@ -69,12 +70,8 @@ listen(Port, _Options) ->
     end.
     
 
-close(Socket) ->
-    gen_server:call(Socket, {close, self()}, infinity).
-
-
 accept(ListenSocket) ->
-    case catch gen_server:call(ListenSocket, {accept, self()}, infinity) of
+    case catch gen_server:call(ListenSocket, accept, infinity) of
         {'EXIT', {noproc, _}} ->
             {error, closed};
         {ok, StackPid} ->
@@ -85,6 +82,10 @@ accept(ListenSocket) ->
     end.
 
 
+close(Socket) ->
+    gen_server:call(Socket, {close, self()}, infinity).
+
+
 port_is_listening(Port) ->
     case tables:lookup_listen(Port) of
         [] ->
@@ -92,3 +93,4 @@ port_is_listening(Port) ->
         [{Port, Pid}] ->
             {true, Pid}
     end.
+

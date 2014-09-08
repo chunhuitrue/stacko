@@ -28,67 +28,64 @@ start_link() ->
     
 
 init([]) ->
-    NicwriteSpec = {nic_out,                           % id
-                    {nic_out, start_link, []},         % {Module, Function, Arguments}
-                    permanent,                         % Restart
-                    brutal_kill,                       % Shutdown
-                    worker,                            % Type
-                    [nic_out]},                        % ModuleList
-
-    IcmpSpec = {icmp,                  % id
-               {icmp, start_link, []}, % {Module, Function, Arguments}
-               permanent,              % Restart
-               brutal_kill,            % Shutdown
-               worker,                 % Type
-               [icmp]},                % ModuleList
-
-    ArpSpec = {arp,                      % id
-               {arp, start_link, [arp]}, % {Module, Function, Arguments}
-               permanent,                % Restart
-               brutal_kill,              % Shutdown
-               worker,                   % Type
-               [arp]},                   % ModuleList
-
-    TcpPortSup = {tcp_port_sup,
-                  {tcp_port_sup, start_link, []},
-                  permanent,
-                  2000,
-                  supervisor,
-                  [tcp_port_sup]},
-
-    Dispatcher = {dispatcher_sup,                   % id
-                  {dispatcher_sup, start_link, []}, % {Module, Function, Arguments}
-                  permanent,                        % Restart
-                  brutal_kill,                      % Shutdown
-                  supervisor,                       % Type
-                  [dispatcher_sup]},                % ModuleList
-
-    TcpPortMgr = {tcp_port_mgr,
-                  {tcp_port_mgr, start_link, []},
-                  permanent,
-                  brutal_kill,
-                  worker,
-                  [tcp_port_mgr]},
-
-    TcpStackGc = {tcp_stack_gc,
-                  {tcp_stack_gc, start_link, []},
-                  permanent,
-                  brutal_kill,
-                  worker,
-                  [tcp_stack_gc]},
-
-    TcpStackSup = {tcp_stack_sup,
-                   {tcp_stack_sup, start_link, []},
-                   permanent,
-                   2000,
-                   supervisor,
-                   [tcp_stack_sup]},
-
     {ok, 
      {{one_for_one, 5, 5}, 
-      [NicwriteSpec, ArpSpec, IcmpSpec, TcpPortSup, Dispatcher, TcpPortMgr,
-       TcpStackGc, TcpStackSup]}}.
+      [
+       {nic_out,                           % id
+        {nic_out, start_link, []},         % {Module, Function, Arguments}
+        permanent,                         % Restart
+        brutal_kill,                       % Shutdown
+        worker,                            % Type
+        [nic_out]},                        % ModuleList
 
+       {icmp,                  % id
+        {icmp, start_link, []}, % {Module, Function, Arguments}
+        permanent,              % Restart
+        brutal_kill,            % Shutdown
+        worker,                 % Type
+        [icmp]},                % ModuleList
 
+       {arp,                      % id
+        {arp, start_link, [arp]}, % {Module, Function, Arguments}
+        permanent,                % Restart
+        brutal_kill,              % Shutdown
+        worker,                   % Type
+        [arp]},                   % ModuleList
+
+       {dispatcher_sup,                   % id
+        {dispatcher_sup, start_link, []}, % {Module, Function, Arguments}
+        permanent,                        % Restart
+        brutal_kill,                      % Shutdown
+        supervisor,                       % Type
+        [dispatcher_sup]},                % ModuleList
+
+       {tcp_monitor,
+        {tcp_monitor, start_link, []},
+        permanent,
+        brutal_kill,
+        worker,
+        [tcp_monitor]},
+
+       {tcp_listen_sup,
+        {tcp_listen_sup, start_link, []},
+        permanent,
+        2000,
+        supervisor,
+        [tcp_listen_sup]},
+
+       {tcp_port_mgr,
+        {tcp_port_mgr, start_link, []},
+        permanent,
+        brutal_kill,
+        worker,
+        [tcp_port_mgr]},
+
+       {tcp_stack_sup,
+        {tcp_stack_sup, start_link, []},
+        permanent,
+        2000,
+        supervisor,
+        [tcp_stack_sup]}
+]}}.
 
 

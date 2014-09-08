@@ -55,6 +55,7 @@
 -export([assign_tcp_port/0]).
 -export([assign_tcp_port/1]).
 -export([release_tcp_port/1]).
+-export([inc_port_ref/1]).
 
 
 
@@ -63,6 +64,7 @@ create_tables() ->
     create_arp(),
     create_nic(),
     create_route(),
+    create_listen(),
     create_stack(),
     create_tcp_port().
 
@@ -293,4 +295,13 @@ release_tcp_port(Port) ->
             ok;
         _Ret ->
             {error, repeat_release}
+    end.
+
+
+inc_port_ref(Port) ->
+    case ets:lookup(tcp_port, Port) of
+        [{Port, RefNum}] ->
+            ets:insert(tcp_port, [{Port, RefNum + 1}]);
+        Ret ->
+            Ret
     end.

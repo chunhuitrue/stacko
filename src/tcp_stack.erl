@@ -42,10 +42,11 @@ start_link(ListenPid) ->
 
 
 init([ListenPid]) ->
-    {ok, #state{listenpid = ListenPid, 
-                userpid = null,
-                userref = null,
-                state = closed}}.
+    {ok, 
+     #state{listenpid = ListenPid, 
+            userpid = null,
+            userref = null,
+            state = closed}}.
 
 
 ready_accept(ListenPid) ->
@@ -53,14 +54,12 @@ ready_accept(ListenPid) ->
 
 
 handle_cast({userpid, UserPid}, State) ->
-    io:format("tcp_stack: ~p get user pid: ~p~n", [self(), UserPid]),
+    ?DBP("tcp_stack: ~p get user pid: ~p~n", [self(), UserPid]),
     Ref = erlang:monitor(process, UserPid),
-    {noreply, State#state{userpid = UserPid,
+    {noreply, ?STATE{userpid = UserPid,
                           userref = Ref}};
 
 handle_cast({syn, Packet}, State) ->
-    io:format("tcp_stack: 11111.~n"),
-
     <<_DMAC:48, _SMAC:48, _Type:16/integer-unsigned-big, % mac header
       _Version:4, _Head:68, _Protocol:8, _HeaderCheckSum:16, % ip header
       SipD1:8, SipD2:8, SipD3:8, SipD4:8, 
@@ -75,31 +74,32 @@ handle_cast({syn, Packet}, State) ->
     Dip = {DipD1, DipD2, DipD3, DipD4},
 
     tables:insert_stack({Sip, Sport, Dip, Dport}, self()),
-    io:format("tcp_stack: get a syn packet. insert_stack: Sip: ~p, Sport: ~p, Pid: ~p~n", [Sip, Sport, self()]),
-    io:format("Dip: ~p, Dport: ~p~n", [Dip, Dport]),
+    gen_server:cast(tcp_port_mgr, {inc_ref, Dport}),
+    ?DBP("tcp_stack: get a syn packet. insert_stack: Sip: ~p, Sport: ~p, Pid: ~p~n", [Sip, Sport, self()]),
+    ?DBP("Dip: ~p, Dport: ~p~n", [Dip, Dport]),
 
 
-    ready_accept(State#state.listenpid),
+    ready_accept(?STATE.listenpid),
 
     %% timer:sleep(5000),
     %% 2 = 3,
 
 
-    {noreply, State#state{state = syn_recv}}.
+    {noreply, ?STATE{state = syn_recv}}.
 
 
-handle_call({close, UserPid}, _From, State) when State#state.userpid == UserPid ->
+handle_call({close, UserPid}, _From, State) when ?STATE.userpid == UserPid ->
     supervisor:terminate_child(tcp_stack_sup, self()),
     %% to do fin_wait_1 ...
-    {reply, ok, State#state{userpid = null,
+    {reply, ok, ?STATE{userpid = null,
                             userref = null,
                             state = fin_wait_1}};
 
-handle_call({close, UserPid}, _From, State) when State#state.userpid =/= UserPid ->
+handle_call({close, UserPid}, _From, State) when ?STATE.userpid =/= UserPid ->
     {reply, {error, permission_denied}, State};
 
 handle_call(query_state, _From, State) ->
-    {reply, {state, State#state.state}, State};
+    {reply, {state, ?STATE.state}, State};
 
 handle_call(check_alive, _From, State) ->
     {reply, alive, State}.
@@ -108,10 +108,8 @@ handle_call(check_alive, _From, State) ->
 
 handle_info({'DOWN', _Ref, process, Pid, _Reason}, State) ->
     io:format("tcp_stack: ~p. user app: ~p is donw.~n", [self(), Pid]),
-
     supervisor:terminate_child(tcp_stack_sup, self()),
-
-    {noreply, State#state{userpid = null,
+    {noreply, ?STATE{userpid = null,
                           userref = null,
                           state = fin_wait_1}}.
 

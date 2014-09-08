@@ -13,7 +13,10 @@
 %% limitations under the License.
 
 
--module(tcp_port_res).
+
+-module(tcp_monitor).
+
+-inlcude("head.hrl").
 
 -behaviour(gen_server).
 -export([init/1]).
@@ -31,44 +34,19 @@ start_link() ->
 
 
 init([]) ->
-    {ok, null, 0}.
+    {ok, null}.
 
 
-handle_cast(_Request, _State) ->
+handle_cast({monitor_me, Pid}, _State) ->
+    erlang:monitor(process, Pid),
     {noreply, null}.
 
 
-port_is_listening(Port) ->
-    case tables:lookup_listen(Port) of
-        [{Port, _Pid}] ->
-            true;
-        [] ->
-            false
-    end.
+handle_call(_Request, _From, _State) ->
+    {noreply, _State}.
 
 
-handle_call({listen, Port, _Backlog, _UserPid}, _From, _State) when Port < 0; Port > 65535 ->
-    {reply, {error, badport}, _State};
-
-handle_call({listen, Port, Backlog, UserPid}, _From, _State) ->
-    case port_is_listening(Port) of
-        true ->
-            {reply, {error, port_listening}, _State};
-        false ->
-            {ok, ListenPid} = tcp_listen_sup:start_child(Port, Backlog, UserPid),
-            erlang:monitor(process, ListenPid),
-            tables:insert_listen(Port, ListenPid),
-            {reply, {ok, ListenPid}, _State}
-    end.
-
-
-handle_info(timeout, _State) ->
-    tables:create_listen(),
-    {noreply, _State};
-    
-handle_info({'DOWN', _Ref, process, Pid, _Reason}, _State) ->
-    io:format("tcp_port_res: listen process is down. pid: ~p~n", [Pid]),
-    tables:del_listen(Pid),
+handle_info(_Request, _State) ->
     {noreply, _State}.
 
 

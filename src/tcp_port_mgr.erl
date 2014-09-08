@@ -28,7 +28,6 @@
 
 
 
-
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
@@ -38,12 +37,14 @@ init([]) ->
     {ok, null}.
 
 
-handle_cast(_Request, _State) ->
+handle_cast({inc_ref, Port}, _State) ->
+    tables:inc_port_ref(Port),
     {noreply, null}.
 
 
-handle_call(_Request, _From, _State) ->
-    {noreply, _State}.
+handle_call({assign_tcp_port, Port}, _From, _State) ->
+    Ret = tables:assign_tcp_port(Port),
+    {reply, Ret, _State}.
 
 
 handle_info(_Request, _State) ->
