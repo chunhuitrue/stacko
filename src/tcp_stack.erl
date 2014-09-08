@@ -27,11 +27,10 @@
 -export([terminate/2]).
 -export([code_change/3]).
 
--export([to_tcp_stack/2]).
 -export([query_state/1]).
 -export([check_alive/1]).
 
--record(state, {listenpid, userpid, userref, state}).
+-record(state, {listenpid, userpid, userref, localip, localport, remoteip, remoteport, state}).
 
 
 
@@ -46,7 +45,12 @@ init([ListenPid]) ->
      #state{listenpid = ListenPid, 
             userpid = null,
             userref = null,
-            state = closed}}.
+            localip = null,
+            localport = null,
+            remoteip = null,
+            remoteport = null,
+            state = closed},
+    0}.
 
 
 ready_accept(ListenPid) ->
@@ -59,7 +63,7 @@ handle_cast({userpid, UserPid}, State) ->
     {noreply, ?STATE{userpid = UserPid,
                           userref = Ref}};
 
-handle_cast({syn, Packet}, State) ->
+handle_cast({packet, Packet}, State) ->
     <<_DMAC:48, _SMAC:48, _Type:16/integer-unsigned-big, % mac header
       _Version:4, _Head:68, _Protocol:8, _HeaderCheckSum:16, % ip header
       SipD1:8, SipD2:8, SipD3:8, SipD4:8, 
@@ -67,26 +71,31 @@ handle_cast({syn, Packet}, State) ->
       Sport:16/integer-unsigned-big, Dport:16/integer-unsigned-big, % tcp header
       _SeqNum:32,
       _AckNum:32,
-      _HeaderLenth:4, _Reserved:6, _URG:1, _ACK:1, _PSH:1, _RST:1, _SYN:1, _FIN:1, _WinSize:16,
+      _HeaderLenth:4, _Reserved:6, _URG:1, _ACK:1, _PSH:1, _RST:1, SYN:1, _FIN:1, _WinSize:16,
       _Rest/binary>> = Packet,
     
     Sip = {SipD1, SipD2, SipD3, SipD4},
     Dip = {DipD1, DipD2, DipD3, DipD4},
 
-    tables:insert_stack({Sip, Sport, Dip, Dport}, self()),
-    gen_server:cast(tcp_port_mgr, {inc_ref, Dport}),
-    ?DBP("tcp_stack: get a syn packet. insert_stack: Sip: ~p, Sport: ~p, Pid: ~p~n", [Sip, Sport, self()]),
-    ?DBP("Dip: ~p, Dport: ~p~n", [Dip, Dport]),
+    if SYN == 1, ?STATE.localip == null ->
+            tables:insert_stack({Sip, Sport, Dip, Dport}, self()),
+            gen_server:cast(tcp_port_mgr, {inc_ref, Dport}),
+            ?DBP("tcp_stack: ~p get a syn packet. insert_stack: Sip: ~p, Sport: ~p, Dip: ~p, Dport: ~p~n", [self(), Sip, Sport, Dip, Dport]),
 
+            ready_accept(?STATE.listenpid),
 
-    ready_accept(?STATE.listenpid),
+            %% timer:sleep(5000),
+            %% 2 = 3,
 
-    %% timer:sleep(5000),
-    %% 2 = 3,
-
-
-    {noreply, ?STATE{state = syn_recv}}.
-
+            {noreply, ?STATE{localip = Dip,
+                             localport = Dport,
+                             remoteip = Sip,
+                             remoteport = Sport,
+                             state = syn_recv}};
+       true ->
+            ?DBP("tcp_stack: ~p recv a duplicate syn packet~n", [self()]),
+            {noreply, State}
+    end.
 
 handle_call({close, UserPid}, _From, State) when ?STATE.userpid == UserPid ->
     supervisor:terminate_child(tcp_stack_sup, self()),
@@ -99,19 +108,20 @@ handle_call({close, UserPid}, _From, State) when ?STATE.userpid =/= UserPid ->
     {reply, {error, permission_denied}, State};
 
 handle_call(query_state, _From, State) ->
-    {reply, {state, ?STATE.state}, State};
-
-handle_call(check_alive, _From, State) ->
-    {reply, alive, State}.
+    {reply, {state, ?STATE.state}, State}.
 
 
+handle_info(timeout, State) ->
+    ?DBP("tcp_stack: start. ann tcp_monitor to monitor me~n"),
+    gen_server:cast(tcp_monitor, {monitor_me, self()}),
+    {noreply, State};
 
 handle_info({'DOWN', _Ref, process, Pid, _Reason}, State) ->
     io:format("tcp_stack: ~p. user app: ~p is donw.~n", [self(), Pid]),
     supervisor:terminate_child(tcp_stack_sup, self()),
     {noreply, ?STATE{userpid = null,
-                          userref = null,
-                          state = fin_wait_1}}.
+                     userref = null,
+                     state = fin_wait_1}}.
 
 
 terminate(_Reason, _STate) ->
@@ -120,10 +130,6 @@ terminate(_Reason, _STate) ->
 
 code_change(_Oldv, _State, _Extra) ->
     {ok, _State}.
-
-
-to_tcp_stack({syn, Packet}, Pid) ->
-    gen_server:cast(Pid, {syn, Packet}).
 
 
 query_state(Pid) ->

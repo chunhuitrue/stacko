@@ -58,10 +58,10 @@ handle_cast({syn, _Packet}, State) when ?STATE.backlog >= ?STATE.backlogarg ->
     {noreply, State};
 
 handle_cast({syn, Packet}, State) ->
-    %% ?DBP("tcp_listen: get a syn packet.~n"),
+    ?DBP("tcp_listen: get a syn packet.~n"),
     {ok, StackPid} = tcp_stack_sup:start_child(self()),
     StackRef = erlang:monitor(process, StackPid),
-    tcp_stack:to_tcp_stack({syn, Packet}, StackPid),
+    gen_server:cast(StackPid, {packet, Packet}),
     {noreply, ?STATE{backlog = ?STATE.backlog + 1, 
                      stackmap = maps:put(StackPid, StackRef, ?STATE.stackmap)}};
 
@@ -119,7 +119,6 @@ handle_info({'DOWN', _Ref, process, StackPid, _Reason}, State) -> % tcp stack pr
             queue = remove_pid(StackPid, ?STATE.queue)}};
 
 handle_info(timeout, State) ->
-    ?DBP("tcp_listen: start~n"),
     erlang:monitor(process, ?STATE.userpid),
     gen_server:cast(tcp_monitor, {monitor_me, self()}),
     tables:insert_listen(?STATE.port, self()),

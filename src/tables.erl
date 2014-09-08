@@ -44,7 +44,7 @@
 -export([del_listen/1]).
 
 -export([create_stack/0]).
--export([lookup_stack/1]).
+-export([lookup_stack/4]).
 -export([insert_stack/2]).
 -export([del_stack/1]).
 
@@ -224,7 +224,7 @@ create_stack() ->
     ets:new(tcp_stack_table, [set, public, named_table, public]).
 
 
-lookup_stack({Sip, Sport, Dip, Dport}) ->
+lookup_stack(Sip, Sport, Dip, Dport) ->
     ets:lookup(tcp_stack_table, {Sip, Sport, Dip, Dport}).
 
 
