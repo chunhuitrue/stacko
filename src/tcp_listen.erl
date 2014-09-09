@@ -31,9 +31,6 @@
 -record(state, {port, backlogarg, backlog, userpid, stackmap, queue, wait_accepts}).
 
 
-close() ->
-    supervisor:terminate_child(tcp_listen_sup, self()).
-
 
 start_link(Port, Backlog, UserPid) ->
     ?DBP("tcp_listen start. port: ~p, backlog: ~p, userpid: ~p~n", 
@@ -82,6 +79,13 @@ handle_cast({ready_accept, StackPid}, State) ->
                      wait_accepts = lists:reverse(erlang:tl(Tmp))}}.
 
 
+close(State) ->
+    tables:del_listen(?STATE.port),
+    tables:release_tcp_port(?STATE.port),
+    lists:map(fun(StackPid) -> gen_server:call(StackPid, listen_close) end, ?STATE.queue),
+    supervisor:terminate_child(tcp_listen_sup, self()).
+
+
 handle_call(accept, From, State) when ?STATE.queue == [] ->
     ?DBP("tcp_listen: no link to accept.~n"),
     {noreply, ?STATE{wait_accepts = [From | ?STATE.wait_accepts]}};
@@ -97,7 +101,7 @@ handle_call(accept, _From, State) ->
 
 handle_call({close, _UserPid}, From, State) ->
     gen_server:reply(From, ok),
-    close(),
+    close(State),
     {noreply, State}.
 
 
@@ -108,15 +112,14 @@ remove_pid(Pid, List) ->
 handle_info({'DOWN', _UserRef, process, UserPid, _Reason},
             State) when UserPid == ?STATE.userpid ->  % user listen process is down
     ?DBP("tcp_listen: user: ~p is down. I'm going to die.~n", [UserPid]),
-    close(),
+    close(State),
     {noreply, State};
 
 handle_info({'DOWN', _Ref, process, StackPid, _Reason}, State) -> % tcp stack process down
     ?DBP("tcp_listen: tcp stack process: ~p is down. so backlog - 1.~n", [StackPid]),
-    {noreply, 
-     ?STATE{backlog = ?STATE.backlog - 1,
-            stackmap = maps:remove(StackPid, ?STATE.stackmap),
-            queue = remove_pid(StackPid, ?STATE.queue)}};
+    {noreply, ?STATE{backlog = ?STATE.backlog - 1,
+                     stackmap = maps:remove(StackPid, ?STATE.stackmap),
+                     queue = remove_pid(StackPid, ?STATE.queue)}};
 
 handle_info(timeout, State) ->
     erlang:monitor(process, ?STATE.userpid),

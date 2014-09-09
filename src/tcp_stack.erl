@@ -97,12 +97,25 @@ handle_cast({packet, Packet}, State) ->
             {noreply, State}
     end.
 
-handle_call({close, UserPid}, _From, State) when ?STATE.userpid == UserPid ->
-    supervisor:terminate_child(tcp_stack_sup, self()),
-    %% to do fin_wait_1 ...
-    {reply, ok, ?STATE{userpid = null,
-                            userref = null,
-                            state = fin_wait_1}};
+
+close(Localip, Localport, Remoteip, Remoteport) ->
+    tables:del_stack(Remoteip, Remoteport, Localip, Localport),
+    tables:release_tcp_port(Localport),
+    supervisor:terminate_child(tcp_stack_sup, self()).
+
+
+handle_call(listen_close, From, State) ->
+    gen_server:reply(From, ok),
+    close(?STATE.localip, ?STATE.localport, ?STATE.remoteip, ?STATE.remoteport),
+    {noreply, ?STATE{state = fin_wait_1}};
+
+handle_call({close, UserPid}, From, State) when ?STATE.userpid == UserPid ->
+    gen_server:reply(From, ok),
+    erlang:demonitor(?STATE.userref),
+    close(?STATE.localip, ?STATE.localport, ?STATE.remoteip, ?STATE.remoteport),
+    {noreply, ?STATE{userpid = null,
+                     userref = null,
+                     state = fin_wait_1}};
 
 handle_call({close, UserPid}, _From, State) when ?STATE.userpid =/= UserPid ->
     {reply, {error, permission_denied}, State};
@@ -116,9 +129,10 @@ handle_info(timeout, State) ->
     gen_server:cast(tcp_monitor, {monitor_me, self()}),
     {noreply, State};
 
-handle_info({'DOWN', _Ref, process, Pid, _Reason}, State) ->
-    io:format("tcp_stack: ~p. user app: ~p is donw.~n", [self(), Pid]),
-    supervisor:terminate_child(tcp_stack_sup, self()),
+handle_info({'DOWN', _Ref, process, _Pid, _Reason}, State) ->
+    ?DBP("tcp_stack: ~p. user app is donw.~n", [self()]),
+    erlang:demonitor(?STATE.userref),
+    close(?STATE.localip, ?STATE.localport, ?STATE.remoteip, ?STATE.remoteport),
     {noreply, ?STATE{userpid = null,
                      userref = null,
                      state = fin_wait_1}}.
