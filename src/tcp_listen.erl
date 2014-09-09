@@ -83,7 +83,7 @@ close(State) ->
     tables:del_listen(?STATE.port),
     gen_server:cast(tcp_port_mgr, {release_port, ?STATE.port}),
     lists:map(fun(StackPid) -> gen_server:call(StackPid, listen_close) end, ?STATE.queue),
-    supervisor:terminate_child(tcp_listen_sup, self()).
+    exit(normal).
 
 
 handle_call(accept, From, State) when ?STATE.queue == [] ->

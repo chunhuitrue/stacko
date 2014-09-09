@@ -46,7 +46,12 @@ handle_call(_Request, _From, _State) ->
     {noreply, _State}.
 
 
-handle_info(_Request, _State) ->
+handle_info({'DOWN', _Ref, process, Pid, Reason}, _State) ->
+    if Reason == normal ->
+            io:format("tcp_monitor: pid: ~p exit Reason: ~p, do nothing~n", [Pid, Reason]);
+       true ->
+            io:format("tcp_monitor: pid: ~p exit Reason: ~p, do clean~n", [Pid, Reason])
+    end,
     {noreply, _State}.
 
 

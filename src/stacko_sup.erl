@@ -66,19 +66,19 @@ init([]) ->
         worker,
         [tcp_monitor]},
 
-       {tcp_listen_sup,
-        {tcp_listen_sup, start_link, []},
-        permanent,
-        2000,
-        supervisor,
-        [tcp_listen_sup]},
-
        {tcp_port_mgr,
         {tcp_port_mgr, start_link, []},
         permanent,
         brutal_kill,
         worker,
         [tcp_port_mgr]},
+
+       {tcp_listen_sup,
+        {tcp_listen_sup, start_link, []},
+        permanent,
+        2000,
+        supervisor,
+        [tcp_listen_sup]},
 
        {tcp_stack_sup,
         {tcp_stack_sup, start_link, []},
