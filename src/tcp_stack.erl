@@ -100,7 +100,7 @@ handle_cast({packet, Packet}, State) ->
 
 close(Localip, Localport, Remoteip, Remoteport) ->
     tables:del_stack(Remoteip, Remoteport, Localip, Localport),
-    tables:release_tcp_port(Localport),
+    gen_server:cast(tcp_port_mgr, {release_port, Localport}),
     supervisor:terminate_child(tcp_stack_sup, self()).
 
 

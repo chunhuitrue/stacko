@@ -39,6 +39,10 @@ init([]) ->
 
 handle_cast({inc_ref, Port}, _State) ->
     tables:inc_port_ref(Port),
+    {noreply, null};
+
+handle_cast({release_port, Port}, _State) ->
+    tables:release_tcp_port(Port),
     {noreply, null}.
 
 
