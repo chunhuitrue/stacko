@@ -99,7 +99,6 @@ handle_cast({packet, Packet}, State) ->
 
 
 close(Localip, Localport, Remoteip, Remoteport) ->
-    exit(not_normal),
     tables:del_stack(Remoteip, Remoteport, Localip, Localport),
     gen_server:cast(tcp_port_mgr, {release_port, Localport}),
     exit(normal).
