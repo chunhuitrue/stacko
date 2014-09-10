@@ -46,11 +46,26 @@ handle_call(_Request, _From, _State) ->
     {noreply, _State}.
 
 
-handle_info({'DOWN', _Ref, process, Pid, Reason}, _State) ->
-    if Reason == normal ->
-            io:format("tcp_monitor: pid: ~p exit Reason: ~p, do nothing~n", [Pid, Reason]);
-       true ->
-            io:format("tcp_monitor: pid: ~p exit Reason: ~p, do clean~n", [Pid, Reason])
+handle_info({'DOWN', _Ref, process, _Pid, normal}, _State) ->
+    %% io:format("tcp_monitor: pid: ~p exit do nothing~n", [Pid]),
+    {noreply, _State};
+
+handle_info({'DOWN', _Ref, process, Pid, _Reason}, _State) ->
+    %% io:format("tcp_monitor: pid: ~p exit do clean~n", [Pid]),
+    case tables:find_listen_port(Pid) of
+        null ->
+            %% io:format("tcp_monitor: pid: ~p is not listen pid~n", [Pid]),
+            case tables:find_stack(Pid) of
+                [{{RemoteIP, RemotePort, LocalIP, LocalPort}, Pid}] ->
+                    tables:del_stack(RemoteIP, RemotePort, LocalIP, LocalPort),
+                    tables:release_tcp_port(LocalPort);
+                [] ->
+                    error
+            end;
+        Port ->
+            %% io:format("clean listen table and tcp port table~n"),
+            tables:del_listen(Port),
+            tables:release_tcp_port(Port)
     end,
     {noreply, _State}.
 

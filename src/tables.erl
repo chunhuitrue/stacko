@@ -42,11 +42,14 @@
 -export([lookup_listen/1]).
 -export([insert_listen/2]).
 -export([del_listen/1]).
+-export([find_listen_port/1]).
 
 -export([create_stack/0]).
 -export([lookup_stack/4]).
 -export([insert_stack/2]).
 -export([del_stack/4]).
+-export([del_stack/1]).
+-export([find_stack/1]).
 
 -export([create_tcp_port/0]).
 -export([lookup_tcp_port/1]).
@@ -216,6 +219,15 @@ del_listen(Port) when is_integer(Port) ->
     ets:delete(tcp_listen_table, Port).
 
 
+find_listen_port(Pid) when is_pid(Pid) ->
+    case ets:match_object(tcp_listen_table, {'$1', Pid}) of
+        [{Port, Pid}] ->
+            Port;
+        [] ->
+            null
+    end.
+                
+
 %% tcp_stack table
 %% key: {Sip, Sport, Dip, Dport}
 %% val: Pid
@@ -232,8 +244,16 @@ insert_stack({Sip, Sport, Dip, Dport}, Pid) ->
     ets:insert(tcp_stack_table, [{{Sip, Sport, Dip, Dport}, Pid}]).
 
 
-del_stack(Sip, Sport, Dip, Dport) ->
-    ets:delete(tcp_stack_table, {Sip, Sport, Dip, Dport}).
+del_stack(RemoteIP, RemotePort, LocalIP, LocalPort) ->
+    ets:delete(tcp_stack_table, {RemoteIP, RemotePort, LocalIP, LocalPort}).
+
+
+del_stack(Tuple4) when is_tuple(Tuple4) ->
+    ets:delete(tcp_stack_table, Tuple4).
+
+
+find_stack(Pid) ->
+    ets:match_object(tcp_stack_table, {'$1', Pid}).
 
 
 %% tcp port
