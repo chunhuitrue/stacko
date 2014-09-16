@@ -66,6 +66,13 @@ init([]) ->
         worker,
         [tcp_monitor]},
 
+       {init_seq,
+        {init_seq, start_link, []},
+        permanent,
+        brutal_kill,
+        worker,
+        [init_seq]},
+
        {tcp_port_mgr,
         {tcp_port_mgr, start_link, []},
         permanent,
