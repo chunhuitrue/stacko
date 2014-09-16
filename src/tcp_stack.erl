@@ -13,25 +13,37 @@
 %% limitations under the License.
 
 
-
 -module(tcp_stack).
 
 -include("head.hrl").
 
 -behaviour(gen_server).
--export([init/1]).
--export([start_link/1]).
--export([handle_cast/2]).
--export([handle_call/3]).
--export([handle_info/2]).
--export([terminate/2]).
--export([code_change/3]).
+-define(SERVER, ?MODULE).
+-export([start_link/1,
+         init/1, 
+         handle_call/3, 
+         handle_cast/2, 
+         handle_info/2,
+         terminate/2, 
+         code_change/3]).
 
--export([query_state/1]).
--export([check_alive/1]).
+-export([query_state/1,
+         check_alive/1]).
 
--record(state, {listenpid, userpid, userref, localip, localport, remoteip, remoteport, state}).
+-record(state, {listenpid, userpid, userref, 
+                localip, localport, remoteip, remoteport,
+                init_seq,
+                state}).
 
+
+ready_accept(ListenPid) ->
+    gen_server:cast(ListenPid, {ready_accept, self()}).
+
+
+close(Localip, Localport, Remoteip, Remoteport) ->
+    tables:del_stack(Remoteip, Remoteport, Localip, Localport),
+    gen_server:cast(tcp_port_mgr, {release_port, Localport}),
+    exit(normal).
 
 
 %% remote address: Sip Sport
@@ -49,12 +61,9 @@ init([ListenPid]) ->
             localport = null,
             remoteip = null,
             remoteport = null,
+            init_seq = null,
             state = closed},
     0}.
-
-
-ready_accept(ListenPid) ->
-    gen_server:cast(ListenPid, {ready_accept, self()}).
 
 
 handle_cast({userpid, UserPid}, State) ->
@@ -62,6 +71,7 @@ handle_cast({userpid, UserPid}, State) ->
     Ref = erlang:monitor(process, UserPid),
     {noreply, ?STATE{userpid = UserPid,
                           userref = Ref}};
+
 
 handle_cast({packet, Packet}, State) ->
     <<_DMAC:48, _SMAC:48, _Type:16/integer-unsigned-big, % mac header
@@ -98,16 +108,11 @@ handle_cast({packet, Packet}, State) ->
     end.
 
 
-close(Localip, Localport, Remoteip, Remoteport) ->
-    tables:del_stack(Remoteip, Remoteport, Localip, Localport),
-    gen_server:cast(tcp_port_mgr, {release_port, Localport}),
-    exit(normal).
-
-
 handle_call(listen_close, From, State) ->
     gen_server:reply(From, ok),
     close(?STATE.localip, ?STATE.localport, ?STATE.remoteip, ?STATE.remoteport),
     {noreply, ?STATE{state = fin_wait_1}};
+
 
 handle_call({close, UserPid}, From, State) when ?STATE.userpid == UserPid ->
     gen_server:reply(From, ok),
@@ -116,9 +121,9 @@ handle_call({close, UserPid}, From, State) when ?STATE.userpid == UserPid ->
     {noreply, ?STATE{userpid = null,
                      userref = null,
                      state = fin_wait_1}};
-
 handle_call({close, UserPid}, _From, State) when ?STATE.userpid =/= UserPid ->
     {reply, {error, permission_denied}, State};
+
 
 handle_call(query_state, _From, State) ->
     {reply, {state, ?STATE.state}, State}.
@@ -127,7 +132,8 @@ handle_call(query_state, _From, State) ->
 handle_info(timeout, State) ->
     ?DBP("tcp_stack: start. ann tcp_monitor to monitor me~n"),
     gen_server:cast(tcp_monitor, {monitor_me, self()}),
-    {noreply, State};
+    {noreply, ?STATE{init_seq = init_seq:init_seq()}};
+
 
 handle_info({'DOWN', _Ref, process, _Pid, _Reason}, State) ->
     ?DBP("tcp_stack: ~p. user app is donw.~n", [self()]),
