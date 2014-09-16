@@ -24,7 +24,11 @@
 -export([accept/1]).
 -export([close/1]).
 
--export([port_is_listening/1]).
+-export([port_is_listening/1,
+         checksum/1,
+         build_ip_pak/6,
+         nic_mac/1,
+         build_eth_pak/4]).
 
 
 print_listen('$end_of_table') ->
@@ -94,3 +98,53 @@ port_is_listening(Port) ->
             {true, Pid}
     end.
 
+
+checksum(Date) ->
+    16#FFFF - makesum(Date).
+    
+
+makesum(Data) ->
+    lists:foldl(fun compl/2, 0, [W || <<W:16>> <= Data]).
+
+
+compl(N) when N =< 16#FFFF -> N;
+compl(N) -> (N band 16#FFFF) + (N bsr 16).
+compl(N,S) -> compl(N+S).
+
+
+build_ip_pak(SrcIP, DstIP, ID, Flags, Protocol, Payload) ->
+    HeadLen4Byte = 5,
+    TotalLenByte = (HeadLen4Byte * 4) + byte_size(Payload),
+    {S1, S2, S3, S4} = SrcIP,
+    {D1, D2, D3, D4} = DstIP,
+
+    CRC = checksum(<<?IPV4:4, HeadLen4Byte:4, 0:8, TotalLenByte:16/integer-unsigned-big,
+                     ID:16/integer-unsigned-big, Flags:3, 0:13/integer-unsigned-big,
+                     64:8, Protocol:8, 0:16/integer-unsigned-big,
+                     S1:8, S2:8, S3:8, S4:8,
+                     D1:8, D2:8, D3:8, D4:8>>),
+    <<?IPV4:4, HeadLen4Byte:4, 0:8, TotalLenByte:16/integer-unsigned-big,
+      ID:16/integer-unsigned-big, Flags:3, 0:13/integer-unsigned-big,
+      64:8, Protocol:8, CRC:16/integer-unsigned-big,
+      S1:8, S2:8, S3:8, S4:8,
+      D1:8, D2:8, D3:8, D4:8,
+      Payload/bits>>.
+
+
+build_eth_pak(SrcMAC, DstMAC, Type, Payload) ->
+    Packet = <<DstMAC:48/bits, SrcMAC:48/bits, Type:16/integer-unsigned-big, 
+               Payload/bits>>,
+    PacketSize = byte_size(Packet),
+
+    if PacketSize < ?MINI_ETH_FRAME ->
+            PadSize = ?MINI_ETH_FRAME - PacketSize,
+            Pad = <<0:(PadSize * 8)>>,
+            <<Packet/bits, Pad/bits>>;
+       true ->
+            Packet
+    end.
+
+
+nic_mac(NicName) ->
+    [{_NicName, _Index, MAC, _HwType, _MTU}] = tables:lookup_nic(NicName),
+    MAC.

@@ -67,11 +67,18 @@ init([]) ->
         [tcp_monitor]},
 
        {tcp_seq,
-        {init_seq, start_link, []},
+        {tcp_seq, start_link, []},
         permanent,
         brutal_kill,
         worker,
         [tcp_seq]},
+
+       {tcp_rst,
+        {tcp_rst, start_link, []},
+        permanent,
+        brutal_kill,
+        worker,
+        [tcp_rst]},
 
        {tcp_port_mgr,
         {tcp_port_mgr, start_link, []},

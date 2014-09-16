@@ -70,6 +70,8 @@ to_listen(Packet, Dport, SYN) ->
     {PortIsListening, ListenPid} = tcp:port_is_listening(Dport),
     if PortIsListening == true, SYN == 1 ->
             tcp_listen:syn_packet(ListenPid, {syn, Packet});
+       SYN == 1 ->
+            gen_server:cast(tcp_rst, {syn_no_listen, Packet});
        true ->
             ok
     end.
