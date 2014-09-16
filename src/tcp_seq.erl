@@ -14,7 +14,7 @@
 
 
 
--module(init_seq).
+-module(tcp_seq).
 
 -include("head.hrl").
 

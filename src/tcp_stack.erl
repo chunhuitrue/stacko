@@ -132,7 +132,7 @@ handle_call(query_state, _From, State) ->
 handle_info(timeout, State) ->
     ?DBP("tcp_stack: start. ann tcp_monitor to monitor me~n"),
     gen_server:cast(tcp_monitor, {monitor_me, self()}),
-    {noreply, ?STATE{init_seq = init_seq:init_seq()}};
+    {noreply, ?STATE{init_seq = tcp_seq:init_seq()}};
 
 
 handle_info({'DOWN', _Ref, process, _Pid, _Reason}, State) ->
