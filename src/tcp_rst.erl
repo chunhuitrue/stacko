@@ -60,10 +60,14 @@ handle_cast({syn_no_listen, Packet}, State) ->
     
     io:format("tcp_rst: headerlen: ~p~n", [HeaderLenth]),
 
-    RetTcpCRC = stacko:checksum(<<Dport:16/integer-unsigned-big, Sport:16/integer-unsigned-big,
+    PseduHeader = <<Dip1:8, Dip2:8, Dip3:8, Dip4:8,
+                    Sip1:8, Sip2:8, Sip3:8, Sip4:8,
+                    0:8, ?PROT_TCP:8, 20:16/integer-unsigned-big>>,
+    RetTcpCRC = stacko:checksum(<<PseduHeader/binary,
+                                  Dport:16/integer-unsigned-big, Sport:16/integer-unsigned-big,
                                   0:32/integer-unsigned-big,
                                   (SeqNum + 1):32/integer-unsigned-big,
-                                  20:4, 0:6, 0:1, 1:1, 0:1, 1:1, 0:1, 0:1, 0:16,
+                                  5:4, 0:6, 0:1, 1:1, 0:1, 1:1, 0:1, 0:1, 0:16,
                                   0:16, 0:16>>),
     RetTcpPak = <<Dport:16/integer-unsigned-big, Sport:16/integer-unsigned-big,
                0:32/integer-unsigned-big,

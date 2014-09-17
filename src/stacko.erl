@@ -216,19 +216,22 @@ cyc_inc_16(Num) ->
     end.
 
 
+%% make_eth_packet(SrcMAC, DstMAC, Type, Payload) ->
+%%     Packet = <<DstMAC:48/bits, SrcMAC:48/bits, Type:16/integer-unsigned-big, 
+%%                Payload/bits>>,
+%%     PacketSize = byte_size(Packet),
+
+%%     if PacketSize < ?MINI_ETH_FRAME ->
+%%             PadSize = ?MINI_ETH_FRAME - PacketSize,
+%%             Pad = <<0:(PadSize * 8)>>,
+%%             <<Packet/bits, Pad/bits>>;
+%%        true ->
+%%             Packet
+%%     end.
+
 make_eth_packet(SrcMAC, DstMAC, Type, Payload) ->
-    Packet = <<DstMAC:48/bits, SrcMAC:48/bits, Type:16/integer-unsigned-big, 
-               Payload/bits>>,
-    PacketSize = byte_size(Packet),
-
-    if PacketSize < ?MINI_ETH_FRAME ->
-            PadSize = ?MINI_ETH_FRAME - PacketSize,
-            Pad = <<0:(PadSize * 8)>>,
-            <<Packet/bits, Pad/bits>>;
-       true ->
-            Packet
-    end.
-
+    <<DstMAC:48/bits, SrcMAC:48/bits, Type:16/integer-unsigned-big, 
+      Payload/bits>>.
 
 make_ip_packet(SrcIP, DstIP, ID, Flags, Protocol, Payload) ->
     HeadLen4Byte = 5,
