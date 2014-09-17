@@ -15,7 +15,7 @@
 
 -module(nic_in).
 
--include("head.hrl").
+-include("stacko.hrl").
 
 -export([start_link/0]).
 

@@ -16,7 +16,7 @@
 
 -module(tcp_seq).
 
--include("head.hrl").
+-include("stacko.hrl").
 
 -behaviour(gen_server).
 -define(SERVER, ?MODULE).

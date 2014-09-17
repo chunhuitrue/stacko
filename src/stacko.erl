@@ -15,7 +15,7 @@
 
 -module(stacko).
 
--include("head.hrl").
+-include("stacko.hrl").
 
 -export([listen/2]).
 -export([close/1]).

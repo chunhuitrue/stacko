@@ -16,7 +16,7 @@
 
 -module(stacko_app).
 
--include("head.hrl").
+-include("stacko.hrl").
 
 -behaviour(application).
 -export([start/2, stop/1]).
