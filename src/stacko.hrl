@@ -13,7 +13,11 @@
 %% limitations under the License.
 
 
--define(STATE, State#state).
+-record(pak, {dmac, smac, eth_type,                    % eth header
+              ip_version, ip_header_len, ip_total_len, % ip header
+              ip_protocol, 
+              sip, dip
+             }).
 
 
 -define(DISPATCHER_NUM, 3).
@@ -38,6 +42,9 @@
 -define(PROT_ICMP, 1).
 -define(PROT_TCP, 6).
 -define(PROT_UDP, 17).
+
+
+-define(STATE, State#state).
 
 
 -ifdef(debug).

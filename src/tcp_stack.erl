@@ -52,15 +52,7 @@ start_link(ListenPid) ->
 
 init([ListenPid]) ->
     {ok, 
-     #state{listenpid = ListenPid, 
-            userpid = null,
-            userref = null,
-            localip = null,
-            localport = null,
-            remoteip = null,
-            remoteport = null,
-            init_seq = null,
-            state = closed},
+     #state{listenpid = ListenPid, state = closed},
     0}.
 
 

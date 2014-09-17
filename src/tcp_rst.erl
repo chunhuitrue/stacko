@@ -39,6 +39,11 @@ handle_call(_Request, _From, State) ->
 
 
 handle_cast({syn_no_listen, Packet}, State) ->
+    Pak = tcp:decode_packet(Packet),
+    io:format("tcp_rst: Packet: ~p~n", [Pak]),
+    
+
+
     <<_DMAC:48, _SMAC:48, _Type:16/integer-unsigned-big,      % mac head
       _Version:4, HeadLen:4, _TOS:8, TotalLen:16/integer-unsigned-big,   % ip head
       _ID:16, _Flg:3, _FragOff:13,
