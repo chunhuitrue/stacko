@@ -147,7 +147,6 @@ build_ip_pak(SrcIP, DstIP, ID, Flags, Protocol, Payload) ->
 %%        true ->
 %%             Packet
 %%     end.
-
 build_eth_pak(SrcMAC, DstMAC, Type, Payload) ->
     <<DstMAC:48/bits, SrcMAC:48/bits, Type:16/integer-unsigned-big, 
       Payload/bits>>.
@@ -158,8 +157,17 @@ nic_mac(NicName) ->
     MAC.
 
 
-decode_tcp(_TcpPacket, Pak) ->
-    Pak.
+decode_tcp(TcpPacket, Pak) ->
+    <<Sport:16/integer-unsigned-big, Dport:16/integer-unsigned-big, 
+      SeqNum:32/integer-unsigned-big,
+      AckNum:32/integer-unsigned-big,
+      HeaderLenth:4, _Reserved:6, _URG:1, ACK:1, _PSH:1, RST:1, SYN:1, FIN:1, WinSize:16,
+      _Checksum:16/integer-unsigned-big, _UrgentPoniter:16/integer-unsigned-big,
+      TcpPayload/binary>> = TcpPacket,
+    
+    Pak#pak{tcp_sport = Sport, tcp_dport = Dport, seq_num = SeqNum, ack_num = AckNum,
+            tcp_header_len = HeaderLenth, ack = ACK, rst = RST, syn = SYN, fin = FIN,
+            window_size = WinSize, tcp_data = TcpPayload}.
 
 
 decode_icmp(_IcmpPacket, Pak) ->
@@ -188,7 +196,9 @@ decode_ip(IpPacket, Pak) ->
                 ?PROT_ICMP ->
                     decode_icmp(IpPayload, Pak2);
                 ?PROT_TCP ->
-                    decode_tcp(IpPayload, Pak2)
+                    decode_tcp(IpPayload, Pak2);
+                _ ->
+                    Pak
             end;
         _ ->
             Pak
