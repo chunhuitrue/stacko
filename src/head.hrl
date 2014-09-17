@@ -13,19 +13,12 @@
 %% limitations under the License.
 
 
-
--ifdef(debug).
--define(DBP(Str), io:format(Str)).
--define(DBP(Str, Args), io:format(Str, Args)).
--else.
--define(DBP(Str), ok).
--define(DBP(Str, Args), ok).
--endif.
-
 -define(STATE, State#state).
+
 
 -define(DISPATCHER_NUM, 3).
 -define(STACK_GC_TIME, 10000).
+
 
 -define(MINI_ETH_FRAME, 64).
 -define(TYPE_ARP, 16#0806).
@@ -45,4 +38,13 @@
 -define(PROT_ICMP, 1).
 -define(PROT_TCP, 6).
 -define(PROT_UDP, 17).
+
+
+-ifdef(debug).
+-define(DBP(Str), io:format(Str)).
+-define(DBP(Str, Args), io:format(Str, Args)).
+-else.
+-define(DBP(Str), ok).
+-define(DBP(Str, Args), ok).
+-endif.
 
