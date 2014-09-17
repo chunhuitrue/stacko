@@ -131,18 +131,22 @@ build_ip_pak(SrcIP, DstIP, ID, Flags, Protocol, Payload) ->
       Payload/bits>>.
 
 
-build_eth_pak(SrcMAC, DstMAC, Type, Payload) ->
-    Packet = <<DstMAC:48/bits, SrcMAC:48/bits, Type:16/integer-unsigned-big, 
-               Payload/bits>>,
-    PacketSize = byte_size(Packet),
+%% build_eth_pak(SrcMAC, DstMAC, Type, Payload) ->
+%%     Packet = <<DstMAC:48/bits, SrcMAC:48/bits, Type:16/integer-unsigned-big, 
+%%                Payload/bits>>,
+%%     PacketSize = byte_size(Packet),
 
-    if PacketSize < ?MINI_ETH_FRAME ->
-            PadSize = ?MINI_ETH_FRAME - PacketSize,
-            Pad = <<0:(PadSize * 8)>>,
-            <<Packet/bits, Pad/bits>>;
-       true ->
-            Packet
-    end.
+%%     if PacketSize < ?MINI_ETH_FRAME ->
+%%             PadSize = ?MINI_ETH_FRAME - PacketSize,
+%%             Pad = <<0:(PadSize * 8)>>,
+%%             <<Packet/bits, Pad/bits>>;
+%%        true ->
+%%             Packet
+%%     end.
+
+build_eth_pak(SrcMAC, DstMAC, Type, Payload) ->
+    <<DstMAC:48/bits, SrcMAC:48/bits, Type:16/integer-unsigned-big, 
+      Payload/bits>>.
 
 
 nic_mac(NicName) ->

@@ -75,7 +75,7 @@ handle_cast({syn_no_listen, Packet}, State) ->
 
     case arp:get_dst_mac2(Sip) of
         {error, noroute} ->
-            ?DBP("tcp_rst: 111~n");
+            io:format("tcp_rst: 111~n");
         {error, A, B} ->
             io:format("tcp_rst: Dip:~p A:~p B:~p~n", [Dip, A, B]);
         {DstMAC, NicName, NicIndex} ->
