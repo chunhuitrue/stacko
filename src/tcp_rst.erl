@@ -39,8 +39,9 @@ handle_call(_Request, _From, State) ->
 
 
 handle_cast({syn_no_listen, Packet}, State) ->
-    Pak = tcp:decode_packet(Packet),
-    io:format("tcp_rst: Packet: ~p~n", [Pak]),
+    PakInfo = tcp:decode_packet(Packet),
+    IpChecksum = tcp:ip_checksum(PakInfo),
+    io:format("tcp_rst. ipcrc ~p~n", [IpChecksum]),
     
 
 

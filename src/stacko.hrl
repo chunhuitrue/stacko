@@ -13,13 +13,13 @@
 %% limitations under the License.
 
 
--record(pak, {dmac, smac, eth_type,                    % eth header
-              ip_version, ip_header_len, ip_total_len, % ip header
-              ip_protocol, sip, dip,
-              tcp_sport, tcp_dport,                    % tcp header
-              seq_num, ack_num,
-              tcp_header_len, ack, rst, syn, fin, 
-              window_size, mss, tcp_data}).
+-record(pkinfo, {dmac, smac, eth_type,                    % eth header
+                 ip_version, ip_header_len, ip_total_len, % ip header
+                 ip_protocol, sip, dip, ip_packet,
+                 tcp_sport, tcp_dport,                    % tcp header
+                 seq_num, ack_num,
+                 tcp_header_len, ack, rst, syn, fin, 
+                 window_size, mss, tcp_packet}).
 
 
 -define(DISPATCHER_NUM, 3).

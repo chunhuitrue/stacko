@@ -25,6 +25,7 @@
 
 -export([port_is_listening/1,
          checksum/1,
+         ip_checksum/1,
          decode_packet/1,
          decode_arp/2,
          decode_ip/2,
@@ -157,24 +158,35 @@ nic_mac(NicName) ->
     MAC.
 
 
-decode_tcp(TcpPacket, Pak) ->
+ip_checksum(PakInfo) ->
+    HeaderLen = PakInfo#pkinfo.ip_header_len * 4 * 8, 
+    <<IpHeader:HeaderLen/bits, _Rest/bits>> = PakInfo#pkinfo.ip_packet,
+    case checksum(IpHeader) of
+        0 ->
+            true;
+        _ ->
+            false
+    end.
+
+
+decode_tcp(TcpPacket, PakInfo) ->
     <<Sport:16/integer-unsigned-big, Dport:16/integer-unsigned-big, 
       SeqNum:32/integer-unsigned-big,
       AckNum:32/integer-unsigned-big,
       HeaderLenth:4, _Reserved:6, _URG:1, ACK:1, _PSH:1, RST:1, SYN:1, FIN:1, WinSize:16,
       _Checksum:16/integer-unsigned-big, _UrgentPoniter:16/integer-unsigned-big,
-      TcpPayload/binary>> = TcpPacket,
+      _TcpPayload/binary>> = TcpPacket,
     
-    Pak#pak{tcp_sport = Sport, tcp_dport = Dport, seq_num = SeqNum, ack_num = AckNum,
-            tcp_header_len = HeaderLenth, ack = ACK, rst = RST, syn = SYN, fin = FIN,
-            window_size = WinSize, tcp_data = TcpPayload}.
+    PakInfo#pkinfo{tcp_sport = Sport, tcp_dport = Dport, seq_num = SeqNum, ack_num = AckNum,
+                   tcp_header_len = HeaderLenth, ack = ACK, rst = RST, syn = SYN, fin = FIN,
+                   window_size = WinSize, tcp_packet = TcpPacket}.
 
 
-decode_icmp(_IcmpPacket, Pak) ->
-    Pak.
+decode_icmp(_IcmpPacket, PakInfo) ->
+    PakInfo.
 
 
-decode_ip(IpPacket, Pak) ->
+decode_ip(IpPacket, PakInfo) ->
     <<Version:4, Packet/bits>> = IpPacket, 
     case Version of
         ?IPV4 ->
@@ -185,28 +197,29 @@ decode_ip(IpPacket, Pak) ->
               Dip1:8, Dip2:8, Dip3:8, Dip4:8,
               IpPayload/binary>> = Packet,
             
-            Pak2 = Pak#pak{ip_version = Version, 
-                           ip_header_len = HeaderLen, 
-                           ip_total_len = TotalLen,
-                           ip_protocol = Protocol, 
-                           sip = {Sip1, Sip2, Sip3, Sip4},
-                           dip = {Dip1, Dip2, Dip3, Dip4}},
+            PakInfo2 = PakInfo#pkinfo{ip_version = Version, 
+                                      ip_header_len = HeaderLen, 
+                                      ip_total_len = TotalLen,
+                                      ip_protocol = Protocol, 
+                                      sip = {Sip1, Sip2, Sip3, Sip4},
+                                      dip = {Dip1, Dip2, Dip3, Dip4},
+                                      ip_packet = IpPacket},
 
             case Protocol of 
                 ?PROT_ICMP ->
-                    decode_icmp(IpPayload, Pak2);
+                    decode_icmp(IpPayload, PakInfo2);
                 ?PROT_TCP ->
-                    decode_tcp(IpPayload, Pak2);
+                    decode_tcp(IpPayload, PakInfo2);
                 _ ->
-                    Pak
+                    PakInfo
             end;
         _ ->
-            Pak
+            PakInfo
     end.
 
 
-decode_arp(_ArpPacket, Pak) ->
-    Pak.
+decode_arp(_ArpPacket, PakInfo) ->
+    PakInfo.
 
 
 decode_packet(Packet) ->
@@ -215,17 +228,17 @@ decode_packet(Packet) ->
       EthType:16/integer-unsigned-big,
       EthPayload/binary>> = Packet,
 
-    Pak = #pak{dmac = {Dmac1, Dmac2, Dmac3, Dmac4, Dmac5, Dmac6},
-                 smac = {Smac1, Smac2, Smac3, Smac4, Smac5, Smac6},
-                 eth_type = EthType},
+    PakInfo = #pkinfo{dmac = {Dmac1, Dmac2, Dmac3, Dmac4, Dmac5, Dmac6},
+                      smac = {Smac1, Smac2, Smac3, Smac4, Smac5, Smac6},
+                      eth_type = EthType},
 
     case EthType of
         ?TYPE_ARP ->
-            decode_arp(EthPayload, Pak);
+            decode_arp(EthPayload, PakInfo);
         ?TYPE_IP ->
-            decode_ip(EthPayload, Pak);
+            decode_ip(EthPayload, PakInfo);
         _ ->
-            Pak
+            PakInfo
     end.
 
     
