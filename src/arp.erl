@@ -161,11 +161,11 @@ del_timeout(First, Now) ->
     if (Now - Time) >= ?ARP_TIMEOUT_SECOND ->
             tables:del_arp(IP);
        (Now - Time) < ?ARP_TIMEOUT_SECOND ->
-            del_timeout(ets:next(arp_table, First), Now)
+            del_timeout(ets:next(stacko_arp, First), Now)
     end.
 del_timeout() ->
     {_MegaSecs, Now, _MicroSecs} = erlang:now(),
-    del_timeout(ets:first(arp_table), Now).
+    del_timeout(ets:first(stacko_arp), Now).
     
 
 refresh('$end_of_table', _Now, []) ->
@@ -174,7 +174,7 @@ refresh('$end_of_table', _Now, [{TargetIP, _HwType, _MAC, NIC, _Time}]) ->
     arp_request(stacko:get_ip_from_nic(NIC), TargetIP, NIC);
 refresh(First, Now, [{Acc_IP, Acc_HwType, Acc_MAC, Acc_NIC, Acc_Time}]) ->
     [{IP, HwType, MAC, NIC, Time}] = tables:lookup_arp(First),
-    Next = ets:next(arp_table, First),
+    Next = ets:next(stacko_arp, First),
     if (Now - Time) < (Now - Acc_Time) ->
             refresh(Next, Now, [{IP, HwType, MAC, NIC, Time}]);
        (Now - Time) >= (Now - Acc_Time) ->
@@ -182,7 +182,7 @@ refresh(First, Now, [{Acc_IP, Acc_HwType, Acc_MAC, Acc_NIC, Acc_Time}]) ->
     end.
 refresh() ->
     {_MegaSecs, Now, _MicroSecs} = erlang:now(),
-    First = ets:first(arp_table),
+    First = ets:first(stacko_arp),
     Acc = tables:lookup_arp(First),
     refresh(First, Now, Acc).
 

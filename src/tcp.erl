@@ -44,7 +44,7 @@ print_listen('$end_of_table') ->
 print_listen(First) ->
     [{Port, Pid}] = tables:lookup_listen(First),
     io:format("~p    *:~p                      *:*                LISTEN~n", [Pid, Port]),
-    print_listen(ets:next(tcp_listen_table, First)).
+    print_listen(ets:next(stacko_tcp_listen, First)).
 
 
 print_stack({ForeignIP, ForeignPort, LocalIP, LocalPort}, Pid) ->
@@ -61,13 +61,13 @@ print_stack({ForeignIP, ForeignPort, LocalIP, LocalPort}, Pid) ->
 
 netstat() ->
     io:format("pid         local address             foreign address     state~n"),
-    print_listen(ets:first(tcp_listen_table)),
+    print_listen(ets:first(stacko_tcp_listen)),
     ets:foldl(fun({Key, Val}, ok) ->
                       print_stack(Key, Val),
                       ok
               end,
               ok,
-              tcp_stack_table).
+              stacko_tcp_stack).
 
 
 listen(Port, _Options) ->

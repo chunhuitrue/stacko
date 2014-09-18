@@ -110,9 +110,9 @@ arp('$end_of_table') ->
 arp(First) ->
    [{IP, HwType, MAC, NIC, _Time}] = tables:lookup_arp(First),
     io:format("~w ~w ~w ~w~n", [IP, HwType, MAC, NIC]),
-    arp(ets:next(arp_table, First)).
+    arp(ets:next(stacko_arp, First)).
 arp() ->
-   arp(ets:first(arp_table)).
+   arp(ets:first(stacko_arp)).
 
 
 test_arp() ->
@@ -153,24 +153,24 @@ get_ip_from_nic(First, NicName) ->
         [{IP, _Mask, NicName}] ->
             IP;
         _ ->
-            get_ip_from_nic(ets:next(ip_table, First), NicName)
+            get_ip_from_nic(ets:next(stacko_ip, First), NicName)
     end.
 get_ip_from_nic(NicName) ->
-    get_ip_from_nic(ets:first(ip_table), NicName).
+    get_ip_from_nic(ets:first(stacko_ip), NicName).
 
 
 route('$end_of_table') ->
     ok;
 route(First) when is_integer(First)  ->
-    Res = ets:lookup(route_table, First),
+    Res = ets:lookup(stacko_route, First),
     io:format("~w~n", [Res]),
-    route(ets:next(route_table, First));
+    route(ets:next(stacko_route, First));
 route(print) ->
-    route(ets:first(route_table)).
+    route(ets:first(stacko_route)).
 
 
 route(add, Destiantion, Gateway, Mask, Flag, NIC) ->
-    case ets:last(route_table) of
+    case ets:last(stacko_route) of
         '$end_of_table' ->
             tables:insert_route(0, Destiantion, Gateway, Mask, Flag, NIC);
         LastIndex ->
