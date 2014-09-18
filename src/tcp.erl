@@ -26,6 +26,8 @@
 -export([port_is_listening/1,
          checksum/1,
          ip_checksum/1,
+         tcp_checksum/1,
+         packet_correct/1,
          decode_packet/1,
          decode_arp/2,
          decode_ip/2,
@@ -169,17 +171,60 @@ ip_checksum(PakInfo) ->
     end.
 
 
-decode_tcp(TcpPacket, PakInfo) ->
-    <<Sport:16/integer-unsigned-big, Dport:16/integer-unsigned-big, 
-      SeqNum:32/integer-unsigned-big,
-      AckNum:32/integer-unsigned-big,
-      HeaderLenth:4, _Reserved:6, _URG:1, ACK:1, _PSH:1, RST:1, SYN:1, FIN:1, WinSize:16,
-      _Checksum:16/integer-unsigned-big, _UrgentPoniter:16/integer-unsigned-big,
-      _TcpPayload/binary>> = TcpPacket,
+tcp_psedu_packet(PakInfo) ->
+    {Sip1, Sip2, Sip3, Sip4} = PakInfo#pkinfo.sip,
+    {Dip1, Dip2, Dip3, Dip4} = PakInfo#pkinfo.dip,
+    TcpLen = PakInfo#pkinfo.ip_total_len - (PakInfo#pkinfo.ip_header_len * 4),
+    PseduHeader = <<Sip1:8, Sip2:8, Sip3:8, Sip4:8,
+                    Dip1:8, Dip2:8, Dip3:8, Dip4:8,
+                    0:8, (PakInfo#pkinfo.ip_protocol):8, TcpLen:16/integer-unsigned-big>>,
+    PseduPacket = <<PseduHeader/binary, (PakInfo#pkinfo.tcp_packet)/binary>>,
+    if (byte_size(PseduPacket)) rem 2 == 0 ->
+            PseduPacket;
+       true ->
+            <<PseduPacket/binary, 0:8>>
+    end.
     
-    PakInfo#pkinfo{tcp_sport = Sport, tcp_dport = Dport, seq_num = SeqNum, ack_num = AckNum,
-                   tcp_header_len = HeaderLenth, ack = ACK, rst = RST, syn = SYN, fin = FIN,
-                   window_size = WinSize, tcp_packet = TcpPacket}.
+
+tcp_checksum(PakInfo) ->
+    case checksum(tcp_psedu_packet(PakInfo)) of
+        0 ->
+            true;
+        _ ->
+            false
+    end.
+
+
+packet_correct(PakInfo) ->
+    case tcp:ip_checksum(PakInfo) of
+        true ->
+            case tcp_checksum(PakInfo) of
+                true ->
+                    true;
+                false ->
+                    false
+                end;
+        false ->
+            false
+    end.
+
+
+decode_tcp(TcpPacket, PakInfo) ->
+    case PakInfo#pkinfo.ip_protocol of
+        ?PROT_TCP ->
+            <<Sport:16/integer-unsigned-big, Dport:16/integer-unsigned-big, 
+              SeqNum:32/integer-unsigned-big,
+              AckNum:32/integer-unsigned-big,
+              HeaderLenth:4, _Reserved:6, _URG:1, ACK:1, _PSH:1, RST:1, SYN:1, FIN:1, WinSize:16,
+              _Checksum:16/integer-unsigned-big, _UrgentPoniter:16/integer-unsigned-big,
+              _TcpPayload/binary>> = TcpPacket,
+
+            PakInfo#pkinfo{tcp_sport = Sport, tcp_dport = Dport, seq_num = SeqNum, ack_num = AckNum,
+                           tcp_header_len = HeaderLenth, ack = ACK, rst = RST, syn = SYN, fin = FIN,
+                           window_size = WinSize, tcp_packet = TcpPacket};
+        _ ->
+         PakInfo   
+    end.
 
 
 decode_icmp(_IcmpPacket, PakInfo) ->

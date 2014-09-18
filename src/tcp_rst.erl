@@ -40,9 +40,12 @@ handle_call(_Request, _From, State) ->
 
 handle_cast({syn_no_listen, Packet}, State) ->
     PakInfo = tcp:decode_packet(Packet),
-    IpChecksum = tcp:ip_checksum(PakInfo),
-    io:format("tcp_rst. ipcrc ~p~n", [IpChecksum]),
-    
+    case tcp:packet_correct(PakInfo) of
+        true ->
+            io:format("tcp_rst. check ok~n");
+        false ->
+            io:format("tcp_rst. check false~n")
+        end,
 
 
     <<_DMAC:48, _SMAC:48, _Type:16/integer-unsigned-big,      % mac head
