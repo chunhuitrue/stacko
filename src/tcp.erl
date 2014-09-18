@@ -33,6 +33,7 @@
          decode_ip/2,
          decode_icmp/2,
          decode_tcp/2,
+         build_tcp_pak/14,
          build_ip_pak/6,
          nic_mac/1,
          build_eth_pak/4]).
@@ -117,6 +118,43 @@ makesum(Data) ->
 compl(N) when N =< 16#FFFF -> N;
 compl(N) -> (N band 16#FFFF) + (N bsr 16).
 compl(N,S) -> compl(N+S).
+
+
+tcp_psedu_ip_header({Sip1, Sip2, Sip3, Sip4}, {Dip1, Dip2, Dip3, Dip4}, TcpLen) ->
+    <<Sip1:8, Sip2:8, Sip3:8, Sip4:8,
+      Dip1:8, Dip2:8, Dip3:8, Dip4:8,
+      0:8, ?PROT_TCP:8, TcpLen:16/integer-unsigned-big>>.
+
+
+tcp_psedu_packet2(Packet) ->
+    case byte_size(Packet) rem 2 of
+        0 ->
+            Packet;
+        _ ->
+            <<Packet/bits, 0:8>>
+        end.
+
+
+build_tcp_pak(Sip, Dip, Sport, Dport, SeqNum, AckNum, URG, ACK, PSH, RST, SYN, FIN, 
+              WinSize, Payload) ->
+    TcpHeaderLen = 5,
+    UrgentPointer = 0,
+    Reserved = 0,
+    TcpLen = (TcpHeaderLen * 4) + byte_size(Payload),
+
+    HalfHeader1 = <<Sport:16/integer-unsigned-big, Dport:16/integer-unsigned-big,
+                    SeqNum:32/integer-unsigned-big,
+                    AckNum:32/integer-unsigned-big,
+                    TcpHeaderLen:4, Reserved:6, URG:1, ACK:1, PSH:1, RST:1, SYN:1, FIN:1, 
+                    WinSize:16/integer-unsigned-big>>,
+    HalfHeader2 = <<UrgentPointer:16/integer-unsigned-big, Payload/binary>>,
+    PseduIpHeader = tcp_psedu_ip_header(Sip, Dip, TcpLen),
+    TcpChecksum = checksum(tcp_psedu_packet2(<<PseduIpHeader/bits, 
+                                               HalfHeader1/bits, 
+                                               0:16/integer-unsigned-big, 
+                                               HalfHeader2/bits>>)),
+
+    <<HalfHeader1/bits, TcpChecksum:16/integer-unsigned-big, HalfHeader2/bits>>.
 
 
 build_ip_pak(SrcIP, DstIP, ID, Flags, Protocol, Payload) ->

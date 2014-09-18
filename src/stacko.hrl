@@ -47,6 +47,7 @@
 
 
 -define(STATE, State#state).
+-define(PAKINFO, PakInfo#pkinfo).
 
 
 -ifdef(debug).
