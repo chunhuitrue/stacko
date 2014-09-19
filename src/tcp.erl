@@ -196,6 +196,23 @@ nic_mac(NicName) ->
     MAC.
 
 
+decode_tcp_options(Packet, PakInfo) ->
+    <<Kind:8, Rest/binary>> = Packet,
+    case Kind of
+        ?TCP_OPTION_END ->
+            {ok, PakInfo};
+        ?TCP_OPTION_NOP ->
+            decode_tcp_options(Rest, PakInfo);
+        ?TCP_OPTION_MSS ->
+            <<_LenMss:8, Mss:16/integer-unsigned-big, Rest2/binary>> = Rest,
+            decode_tcp_options(Rest2, ?PAKINFO{mss = Mss});
+        _ ->
+            <<Len:8, _/binary>> = Rest,
+            <<_UnknowOption:Len/binary, Rest3/binary>> = Packet,
+            decode_tcp_options(Rest3, PakInfo)
+        end.
+
+
 decode_tcp(TcpPacket, PakInfo) ->
     TcpLen = ?PAKINFO.ip_total_len - (?PAKINFO.ip_header_len * 4),
     PseduIpHeader = psedu_ip_tcp_header(?PAKINFO.sip, ?PAKINFO.dip, TcpLen),
@@ -207,13 +224,23 @@ decode_tcp(TcpPacket, PakInfo) ->
               HeaderLenth:4, _Reserved:6, 
               _URG:1, ACK:1, _PSH:1, RST:1, SYN:1, FIN:1, WinSize:16,
               _Checksum:16/integer-unsigned-big, _UrgentPoniter:16/integer-unsigned-big,
-              _TcpPayload/binary>> = TcpPacket,
+              TcpRest/binary>> = TcpPacket,
 
-            {ok, PakInfo#pkinfo{tcp_sport = Sport, tcp_dport = Dport, 
+            HeaderLenBytes = HeaderLenth * 4,
+            <<_TcpHeader:HeaderLenBytes/binary, Data/binary>> = TcpPacket,
+            PakInfo2 = ?PAKINFO{tcp_sport = Sport, tcp_dport = Dport, 
                                 seq_num = SeqNum, ack_num = AckNum,
                                 tcp_header_len = HeaderLenth, 
                                 ack = ACK, rst = RST, syn = SYN, fin = FIN,
-                                window_size = WinSize, tcp_packet = TcpPacket}};
+                                window_size = WinSize, tcp_packet = TcpPacket,
+                                tcp_data = Data},
+
+            case HeaderLenBytes > 20 of
+                true ->
+                    decode_tcp_options(TcpRest, PakInfo2);
+                false ->
+                    {ok, PakInfo2}
+                end;
         _ ->
             {error, err_tcp_checksum}
         end.

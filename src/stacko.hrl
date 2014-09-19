@@ -19,7 +19,7 @@
                  tcp_sport, tcp_dport,                    % tcp header
                  seq_num, ack_num,
                  tcp_header_len, ack, rst, syn, fin, 
-                 window_size, mss, tcp_packet}).
+                 window_size, mss, tcp_packet, tcp_data}).
 
 
 -define(DISPATCHER_NUM, 3).
@@ -43,6 +43,9 @@
 
 -define(PROT_ICMP, 1).
 -define(PROT_TCP, 6).
+-define(TCP_OPTION_END, 0).
+-define(TCP_OPTION_NOP, 1).
+-define(TCP_OPTION_MSS, 2).
 -define(PROT_UDP, 17).
 
 
