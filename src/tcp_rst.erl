@@ -42,7 +42,7 @@ handle_cast({syn_no_listen, Packet}, State) ->
     case tcp:decode_packet(Packet) of
         {error, _Reason} ->
             ok;
-        PakInfo ->
+        {ok, PakInfo} ->
             RetTcpPak = tcp:build_tcp_pak(?PAKINFO.dip, ?PAKINFO.sip, 
                                           ?PAKINFO.tcp_dport, ?PAKINFO.tcp_sport,
                                           0, ?PAKINFO.seq_num + 1,

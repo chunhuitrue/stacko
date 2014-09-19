@@ -209,11 +209,11 @@ decode_tcp(TcpPacket, PakInfo) ->
               _Checksum:16/integer-unsigned-big, _UrgentPoniter:16/integer-unsigned-big,
               _TcpPayload/binary>> = TcpPacket,
 
-            PakInfo#pkinfo{tcp_sport = Sport, tcp_dport = Dport, 
-                           seq_num = SeqNum, ack_num = AckNum,
-                           tcp_header_len = HeaderLenth, 
-                           ack = ACK, rst = RST, syn = SYN, fin = FIN,
-                           window_size = WinSize, tcp_packet = TcpPacket};
+            {ok, PakInfo#pkinfo{tcp_sport = Sport, tcp_dport = Dport, 
+                                seq_num = SeqNum, ack_num = AckNum,
+                                tcp_header_len = HeaderLenth, 
+                                ack = ACK, rst = RST, syn = SYN, fin = FIN,
+                                window_size = WinSize, tcp_packet = TcpPacket}};
         _ ->
             {error, err_tcp_checksum}
         end.
@@ -255,7 +255,7 @@ decode_ip(IpPacket, PakInfo) ->
                             {error, unknow_ip_prot}
                     end;
                 _OtherVersion ->
-                    PakInfo
+                    {error, err_ip_version}
             end;
         _ ->
             {error, err_ip_checksum}
