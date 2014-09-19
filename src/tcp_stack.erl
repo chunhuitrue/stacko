@@ -15,6 +15,7 @@
 
 -module(tcp_stack).
 -include("stacko.hrl").
+
 -behaviour(gen_server).
 -define(SERVER, ?MODULE).
 -export([start_link/1,
@@ -29,19 +30,31 @@
          check_alive/1]).
 
 -record(state, {listenpid, userpid, userref, 
-                localip, localport, remoteip, remoteport,
-                init_seq,
-                state}).
+                localip, localport, opposite_ip, opposite_port,
+                init_seq, state,
+                opposite_mss}).
 
 
-ready_accept(ListenPid) ->
-    gen_server:cast(ListenPid, {ready_accept, self()}).
-
-
-close(Localip, Localport, Remoteip, Remoteport) ->
-    tables:del_stack(Remoteip, Remoteport, Localip, Localport),
+close(Localip, Localport, RemoteIp, Remoteport) ->
+    tables:del_stack(RemoteIp, Remoteport, Localip, Localport),
     gen_server:cast(tcp_port_mgr, {release_port, Localport}),
     exit(normal).
+
+
+recv_a_syn_packet(PakInfo, State) ->
+    tables:insert_stack({?PAKINFO.sip, ?PAKINFO.tcp_sport, ?PAKINFO.dip, ?PAKINFO.tcp_dport},
+                       self()),
+    gen_server:cast(tcp_port_mgr, {inc_ref, ?PAKINFO.tcp_dport}),
+    gen_server:cast(?STATE.listenpid, {ready_accept, self()}),
+
+    %% send syn ack
+
+    ?STATE{localip = ?PAKINFO.dip,
+           localport = ?PAKINFO.tcp_dport,
+           opposite_ip = ?PAKINFO.sip,
+           opposite_port = ?PAKINFO.tcp_sport,
+           state = syn_recvd,
+           opposite_mss = ?PAKINFO.mss}.
 
 
 %% remote address: Sip Sport
@@ -51,63 +64,40 @@ start_link(ListenPid) ->
 
 
 init([ListenPid]) ->
-    {ok, 
-     #state{listenpid = ListenPid, state = closed},
-    0}.
+    {ok, #state{listenpid = ListenPid}, 0}.
 
 
 handle_cast({userpid, UserPid}, State) ->
     ?DBP("tcp_stack: ~p get user pid: ~p~n", [self(), UserPid]),
     Ref = erlang:monitor(process, UserPid),
     {noreply, ?STATE{userpid = UserPid,
-                          userref = Ref}};
+                     userref = Ref}};
 
 
 handle_cast({packet, Packet}, State) ->
-    <<_DMAC:48, _SMAC:48, _Type:16/integer-unsigned-big, % mac header
-      _Version:4, _Head:68, _Protocol:8, _HeaderCheckSum:16, % ip header
-      SipD1:8, SipD2:8, SipD3:8, SipD4:8, 
-      DipD1:8, DipD2:8, DipD3:8, DipD4:8, 
-      Sport:16/integer-unsigned-big, Dport:16/integer-unsigned-big, % tcp header
-      _SeqNum:32,
-      _AckNum:32,
-      _HeaderLenth:4, _Reserved:6, _URG:1, _ACK:1, _PSH:1, _RST:1, SYN:1, _FIN:1, _WinSize:16,
-      _Rest/binary>> = Packet,
-    
-    Sip = {SipD1, SipD2, SipD3, SipD4},
-    Dip = {DipD1, DipD2, DipD3, DipD4},
-
-    if SYN == 1, ?STATE.localip == null ->
-            tables:insert_stack({Sip, Sport, Dip, Dport}, self()),
-            gen_server:cast(tcp_port_mgr, {inc_ref, Dport}),
-            ?DBP("tcp_stack: ~p get a syn packet. insert_stack: Sip: ~p, Sport: ~p, Dip: ~p, Dport: ~p~n", [self(), Sip, Sport, Dip, Dport]),
-
-            ready_accept(?STATE.listenpid),
-
-            %% timer:sleep(5000),
-            %% 2 = 3,
-
-            {noreply, ?STATE{localip = Dip,
-                             localport = Dport,
-                             remoteip = Sip,
-                             remoteport = Sport,
-                             state = syn_recv}};
-       true ->
-            ?DBP("tcp_stack: ~p recv a duplicate syn packet~n", [self()]),
-            {noreply, State}
+    case tcp:decode_packet(Packet) of
+        {error, _Reason} ->
+            {noreply, State};
+        {ok, PakInfo} ->
+            if ?PAKINFO.syn == 1, ?STATE.state == closed ->
+                    NewState = recv_a_syn_packet(PakInfo, State),
+                    {noreply, NewState};
+               true ->
+                    {noreply, State}
+            end
     end.
 
 
 handle_call(listen_close, From, State) ->
     gen_server:reply(From, ok),
-    close(?STATE.localip, ?STATE.localport, ?STATE.remoteip, ?STATE.remoteport),
+    close(?STATE.localip, ?STATE.localport, ?STATE.opposite_ip, ?STATE.opposite_port),
     {noreply, ?STATE{state = fin_wait_1}};
 
 
 handle_call({close, UserPid}, From, State) when ?STATE.userpid == UserPid ->
     gen_server:reply(From, ok),
     erlang:demonitor(?STATE.userref),
-    close(?STATE.localip, ?STATE.localport, ?STATE.remoteip, ?STATE.remoteport),
+    close(?STATE.localip, ?STATE.localport, ?STATE.opposite_ip, ?STATE.opposite_port),
     {noreply, ?STATE{userpid = null,
                      userref = null,
                      state = fin_wait_1}};
@@ -122,13 +112,14 @@ handle_call(query_state, _From, State) ->
 handle_info(timeout, State) ->
     ?DBP("tcp_stack: start. ann tcp_monitor to monitor me~n"),
     gen_server:cast(tcp_monitor, {monitor_me, self()}),
-    {noreply, ?STATE{init_seq = tcp_seq:init_seq()}};
+    {noreply, ?STATE{init_seq = tcp_seq:init_seq(),
+                     state = closed}};
 
 
 handle_info({'DOWN', _Ref, process, _Pid, _Reason}, State) ->
     ?DBP("tcp_stack: ~p. user app is donw.~n", [self()]),
     erlang:demonitor(?STATE.userref),
-    close(?STATE.localip, ?STATE.localport, ?STATE.remoteip, ?STATE.remoteport),
+    close(?STATE.localip, ?STATE.localport, ?STATE.opposite_ip, ?STATE.opposite_port),
     {noreply, ?STATE{userpid = null,
                      userref = null,
                      state = fin_wait_1}}.
