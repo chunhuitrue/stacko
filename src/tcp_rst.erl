@@ -39,9 +39,10 @@ handle_call(_Request, _From, State) ->
 
 
 handle_cast({syn_no_listen, Packet}, State) ->
-    PakInfo = tcp:decode_packet(Packet),
-    case tcp:packet_correct(PakInfo) of
-        true ->
+    case tcp:decode_packet(Packet) of
+        {error, _Reason} ->
+            ok;
+        PakInfo ->
             RetTcpPak = tcp:build_tcp_pak(?PAKINFO.dip, ?PAKINFO.sip, 
                                           ?PAKINFO.tcp_dport, ?PAKINFO.tcp_sport,
                                           0, ?PAKINFO.seq_num + 1,
@@ -59,9 +60,7 @@ handle_cast({syn_no_listen, Packet}, State) ->
                     nic_out:send(NicIndex, RetEthPak);
                 _ ->
                     ok
-            end;
-        false ->
-            ok
+            end
         end,
     {noreply, State}.
 

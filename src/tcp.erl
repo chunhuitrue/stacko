@@ -17,6 +17,7 @@
 -module(tcp).
 
 -include("stacko.hrl").
+
 -export([netstat/0]).
 
 -export([listen/2,
@@ -25,9 +26,6 @@
 
 -export([port_is_listening/1,
          checksum/1,
-         ip_checksum/1,
-         tcp_checksum/1,
-         packet_correct/1,
          decode_packet/1,
          decode_arp/2,
          decode_ip/2,
@@ -107,26 +105,26 @@ port_is_listening(Port) ->
     end.
 
 
-checksum(Date) ->
-    16#FFFF - makesum(Date).
-    
-
-makesum(Data) ->
-    lists:foldl(fun compl/2, 0, [W || <<W:16>> <= Data]).
-
-
 compl(N) when N =< 16#FFFF -> N;
 compl(N) -> (N band 16#FFFF) + (N bsr 16).
 compl(N,S) -> compl(N+S).
 
 
-tcp_psedu_ip_header({Sip1, Sip2, Sip3, Sip4}, {Dip1, Dip2, Dip3, Dip4}, TcpLen) ->
+makesum(Data) ->
+    lists:foldl(fun compl/2, 0, [W || <<W:16>> <= Data]).
+
+
+checksum(Date) ->
+    16#FFFF - makesum(Date).
+    
+
+psedu_ip_tcp_header({Sip1, Sip2, Sip3, Sip4}, {Dip1, Dip2, Dip3, Dip4}, TcpLen) ->
     <<Sip1:8, Sip2:8, Sip3:8, Sip4:8,
       Dip1:8, Dip2:8, Dip3:8, Dip4:8,
       0:8, ?PROT_TCP:8, TcpLen:16/integer-unsigned-big>>.
 
 
-tcp_psedu_packet2(Packet) ->
+psedu_tcp_packet(Packet) ->
     case byte_size(Packet) rem 2 of
         0 ->
             Packet;
@@ -148,8 +146,8 @@ build_tcp_pak(Sip, Dip, Sport, Dport, SeqNum, AckNum, URG, ACK, PSH, RST, SYN, F
                     TcpHeaderLen:4, Reserved:6, URG:1, ACK:1, PSH:1, RST:1, SYN:1, FIN:1, 
                     WinSize:16/integer-unsigned-big>>,
     HalfHeader2 = <<UrgentPointer:16/integer-unsigned-big, Payload/binary>>,
-    PseduIpHeader = tcp_psedu_ip_header(Sip, Dip, TcpLen),
-    TcpChecksum = checksum(tcp_psedu_packet2(<<PseduIpHeader/bits, 
+    PseduIpHeader = psedu_ip_tcp_header(Sip, Dip, TcpLen),
+    TcpChecksum = checksum(psedu_tcp_packet(<<PseduIpHeader/bits, 
                                                HalfHeader1/bits, 
                                                0:16/integer-unsigned-big, 
                                                HalfHeader2/bits>>)),
@@ -198,111 +196,74 @@ nic_mac(NicName) ->
     MAC.
 
 
-ip_checksum(PakInfo) ->
-    HeaderLen = PakInfo#pkinfo.ip_header_len * 4 * 8, 
-    <<IpHeader:HeaderLen/bits, _Rest/bits>> = PakInfo#pkinfo.ip_packet,
-    case checksum(IpHeader) of
-        0 ->
-            true;
-        _ ->
-            false
-    end.
-
-
-tcp_psedu_packet(PakInfo) ->
-    {Sip1, Sip2, Sip3, Sip4} = PakInfo#pkinfo.sip,
-    {Dip1, Dip2, Dip3, Dip4} = PakInfo#pkinfo.dip,
-    TcpLen = PakInfo#pkinfo.ip_total_len - (PakInfo#pkinfo.ip_header_len * 4),
-    PseduHeader = <<Sip1:8, Sip2:8, Sip3:8, Sip4:8,
-                    Dip1:8, Dip2:8, Dip3:8, Dip4:8,
-                    0:8, (PakInfo#pkinfo.ip_protocol):8, TcpLen:16/integer-unsigned-big>>,
-    PseduPacket = <<PseduHeader/binary, (PakInfo#pkinfo.tcp_packet)/binary>>,
-    if (byte_size(PseduPacket)) rem 2 == 0 ->
-            PseduPacket;
-       true ->
-            <<PseduPacket/binary, 0:8>>
-    end.
-    
-
-tcp_checksum(PakInfo) ->
-    case checksum(tcp_psedu_packet(PakInfo)) of
-        0 ->
-            true;
-        _ ->
-            false
-    end.
-
-
-packet_correct(PakInfo) ->
-    case tcp:ip_checksum(PakInfo) of
-        true ->
-            case tcp_checksum(PakInfo) of
-                true ->
-                    true;
-                false ->
-                    false
-                end;
-        false ->
-            false
-    end.
-
-
 decode_tcp(TcpPacket, PakInfo) ->
-    case PakInfo#pkinfo.ip_protocol of
-        ?PROT_TCP ->
+    TcpLen = ?PAKINFO.ip_total_len - (?PAKINFO.ip_header_len * 4),
+    PseduIpHeader = psedu_ip_tcp_header(?PAKINFO.sip, ?PAKINFO.dip, TcpLen),
+    case checksum(psedu_tcp_packet(<<PseduIpHeader/bits, TcpPacket/bits>>)) of
+        0 ->
             <<Sport:16/integer-unsigned-big, Dport:16/integer-unsigned-big, 
               SeqNum:32/integer-unsigned-big,
               AckNum:32/integer-unsigned-big,
-              HeaderLenth:4, _Reserved:6, _URG:1, ACK:1, _PSH:1, RST:1, SYN:1, FIN:1, WinSize:16,
+              HeaderLenth:4, _Reserved:6, 
+              _URG:1, ACK:1, _PSH:1, RST:1, SYN:1, FIN:1, WinSize:16,
               _Checksum:16/integer-unsigned-big, _UrgentPoniter:16/integer-unsigned-big,
               _TcpPayload/binary>> = TcpPacket,
 
-            PakInfo#pkinfo{tcp_sport = Sport, tcp_dport = Dport, seq_num = SeqNum, ack_num = AckNum,
-                           tcp_header_len = HeaderLenth, ack = ACK, rst = RST, syn = SYN, fin = FIN,
+            PakInfo#pkinfo{tcp_sport = Sport, tcp_dport = Dport, 
+                           seq_num = SeqNum, ack_num = AckNum,
+                           tcp_header_len = HeaderLenth, 
+                           ack = ACK, rst = RST, syn = SYN, fin = FIN,
                            window_size = WinSize, tcp_packet = TcpPacket};
         _ ->
-         PakInfo   
-    end.
+            {error, err_tcp_checksum}
+        end.
 
 
-decode_icmp(_IcmpPacket, PakInfo) ->
-    PakInfo.
+decode_icmp(_IcmpPacket, _PakInfo) ->
+    {error, noicmp}.
 
 
 decode_ip(IpPacket, PakInfo) ->
-    <<Version:4, Packet/bits>> = IpPacket, 
-    case Version of
-        ?IPV4 ->
-            <<HeaderLen:4, _TOS:8, TotalLen:16/integer-unsigned-big,
-              _ID:16, _Flg:3, _FragOffset:13,
-              _TTL:8, Protocol:8, _Checksum:16,  
-              Sip1:8, Sip2:8, Sip3:8, Sip4:8,
-              Dip1:8, Dip2:8, Dip3:8, Dip4:8,
-              IpPayload/binary>> = Packet,
-            
-            PakInfo2 = PakInfo#pkinfo{ip_version = Version, 
-                                      ip_header_len = HeaderLen, 
-                                      ip_total_len = TotalLen,
-                                      ip_protocol = Protocol, 
-                                      sip = {Sip1, Sip2, Sip3, Sip4},
-                                      dip = {Dip1, Dip2, Dip3, Dip4},
-                                      ip_packet = IpPacket},
+    <<Version:4, HeaderLen:4, Packet/bits>> = IpPacket, 
+    IpHeaderLenBits = HeaderLen * 4 * 8,
+    <<IpHeader:IpHeaderLenBits/bits, _Rest/bits>> = IpPacket,
+    case checksum(IpHeader) of
+        0 ->
+            case Version of
+                ?IPV4 ->
+                    <<_TOS:8, TotalLen:16/integer-unsigned-big,
+                      _ID:16, _Flg:3, _FragOffset:13,
+                      _TTL:8, Protocol:8, _Checksum:16,  
+                      Sip1:8, Sip2:8, Sip3:8, Sip4:8,
+                      Dip1:8, Dip2:8, Dip3:8, Dip4:8,
+                      IpPayload/binary>> = Packet,
 
-            case Protocol of 
-                ?PROT_ICMP ->
-                    decode_icmp(IpPayload, PakInfo2);
-                ?PROT_TCP ->
-                    decode_tcp(IpPayload, PakInfo2);
-                _ ->
+                    PakInfo2 = PakInfo#pkinfo{ip_version = Version, 
+                                              ip_header_len = HeaderLen, 
+                                              ip_total_len = TotalLen,
+                                              ip_protocol = Protocol, 
+                                              sip = {Sip1, Sip2, Sip3, Sip4},
+                                              dip = {Dip1, Dip2, Dip3, Dip4},
+                                              ip_packet = IpPacket},
+
+                    case Protocol of 
+                        ?PROT_ICMP ->
+                            decode_icmp(IpPayload, PakInfo2);
+                        ?PROT_TCP ->
+                            decode_tcp(IpPayload, PakInfo2);
+                        _ ->
+                            {error, unknow_ip_prot}
+                    end;
+                _OtherVersion ->
                     PakInfo
             end;
         _ ->
-            PakInfo
+            {error, err_ip_checksum}
     end.
 
 
-decode_arp(_ArpPacket, PakInfo) ->
-    PakInfo.
+decode_arp(_ArpPacket, _PakInfo) ->
+    {error, noarp}.
 
 
 decode_packet(Packet) ->
@@ -321,7 +282,7 @@ decode_packet(Packet) ->
         ?TYPE_IP ->
             decode_ip(EthPayload, PakInfo);
         _ ->
-            PakInfo
+            {error, unknow_eth_type}
     end.
 
     
