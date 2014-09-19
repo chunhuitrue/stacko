@@ -75,7 +75,7 @@ create_tables() ->
 %% nic tabe
 %% name, Index, Mac, HwType, MTU
 create_nic() ->
-    ets:new(stacko_nic, [set, public, named_table, public]).
+    ets:new(stacko_nic, [set, named_table, public]).
     
 
 lookup_nic(Name) ->
@@ -93,7 +93,7 @@ del_nic(Name) ->
 %% arp table
 %% ip HwType Mac Nic time
 create_arp() ->
-    ets:new(stacko_arp, [set, public, named_table, public]).
+    ets:new(stacko_arp, [set, named_table, public]).
 
 
 lookup_arp(IP) ->
@@ -111,7 +111,7 @@ del_arp(IP) ->
 %% ip table
 %% ip mask nic
 create_ip() ->
-    ets:new(stacko_ip, [set, public, named_table, public]).
+    ets:new(stacko_ip, [set, named_table, public]).
 
 
 lookup_ip(IP) ->
@@ -138,7 +138,7 @@ is_my_ip(IP) ->
 %% route table
 %% num  destination  gateway  mask  flag  nic
 create_route() ->
-    ets:new(stacko_route, [ordered_set,  public, named_table, public]).
+    ets:new(stacko_route, [ordered_set, named_table, public]).
     
 
 insert_route(Num, Destiantion, Gateway, Mask, Flag, NIC) ->
@@ -189,7 +189,7 @@ find_route(IP) ->
 %% key: Port 
 %% val: Pid
 create_listen() ->
-    ets:new(stacko_tcp_listen, [set, public, named_table, public]).
+    ets:new(stacko_tcp_listen, [set, named_table, public]).
 
 
 lookup_listen('$end_of_table', _Pid) ->
@@ -233,7 +233,7 @@ find_listen_port(Pid) when is_pid(Pid) ->
 %% val: Pid
 %% local address: dip, dport 
 create_stack() ->
-    ets:new(stacko_tcp_stack, [set, public, named_table, public]).
+    ets:new(stacko_tcp_stack, [set, named_table, public]).
 
 
 lookup_stack(Sip, Sport, Dip, Dport) ->
