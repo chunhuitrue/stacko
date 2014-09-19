@@ -311,5 +311,4 @@ decode_packet(Packet) ->
         _ ->
             {error, unknow_eth_type}
     end.
-
     
