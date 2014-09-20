@@ -34,6 +34,7 @@
          build_tcp_packet/1,
          build_ip_packet/1,
          build_eth_packet/4,
+         build_eth_packet_with_pad/4,
          nic_mac/1]).
 
 
@@ -180,18 +181,20 @@ build_ip_packet(PropList) ->
     <<HalfHeader1/bits, Checksum:16/integer-unsigned-big, HalfHeader2/bits, Payload/binary>>.
 
 
-%% build_eth_pak(SrcMAC, DstMAC, Type, Payload) ->
-%%     Packet = <<DstMAC:48/bits, SrcMAC:48/bits, Type:16/integer-unsigned-big, 
-%%                Payload/bits>>,
-%%     PacketSize = byte_size(Packet),
+build_eth_packet_with_pad(SrcMAC, DstMAC, Type, Payload) ->
+    Packet = <<DstMAC:48/bits, SrcMAC:48/bits, Type:16/integer-unsigned-big, 
+               Payload/bits>>,
+    PacketSize = byte_size(Packet),
 
-%%     if PacketSize < ?MINI_ETH_FRAME ->
-%%             PadSize = ?MINI_ETH_FRAME - PacketSize,
-%%             Pad = <<0:(PadSize * 8)>>,
-%%             <<Packet/bits, Pad/bits>>;
-%%        true ->
-%%             Packet
-%%     end.
+    if PacketSize < ?MINI_ETH_FRAME ->
+            PadSize = ?MINI_ETH_FRAME - PacketSize,
+            Pad = <<0:(PadSize * 8)>>,
+            <<Packet/bits, Pad/bits>>;
+       true ->
+            Packet
+    end.
+
+
 build_eth_packet(SrcMAC, DstMAC, Type, Payload) ->
     <<DstMAC:48/bits, SrcMAC:48/bits, Type:16/integer-unsigned-big, 
       Payload/bits>>.
