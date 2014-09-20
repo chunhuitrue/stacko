@@ -50,7 +50,9 @@ handle_cast({syn_no_listen, Packet}, State) ->
                                               {ack_num, ?PAKINFO.seq_num + 1},
                                               {ack, 1},
                                               {rst, 1}]),
-            RetIpPak = tcp:build_ip_pak(?PAKINFO.dip, ?PAKINFO.sip, 0, 0, ?PROT_TCP, RetTcpPak),
+            RetIpPak = tcp:build_ip_packet([{sip, ?PAKINFO.dip},
+                                            {dip, ?PAKINFO.sip},
+                                            {payload, RetTcpPak}]),
             case arp:get_dst_mac2(?PAKINFO.sip) of
                 {error, noroute} ->
                     ok;
@@ -58,7 +60,7 @@ handle_cast({syn_no_listen, Packet}, State) ->
                     ok;
                 {DstMAC, NicName, NicIndex} ->
                     SrcMAC = tcp:nic_mac(NicName),
-                    RetEthPak = tcp:build_eth_pak(SrcMAC, DstMAC, ?TYPE_IP, RetIpPak),
+                    RetEthPak = tcp:build_eth_packet(SrcMAC, DstMAC, ?TYPE_IP, RetIpPak),
                     nic_out:send(NicIndex, RetEthPak);
                 _ ->
                     ok

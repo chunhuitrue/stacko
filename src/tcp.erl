@@ -32,9 +32,9 @@
          decode_icmp/2,
          decode_tcp/2,
          build_tcp_packet/1,
-         build_ip_pak/6,
-         nic_mac/1,
-         build_eth_pak/4]).
+         build_ip_packet/1,
+         build_eth_packet/4,
+         nic_mac/1]).
 
 
 print_listen('$end_of_table') ->
@@ -156,28 +156,28 @@ build_tcp_packet(PropList) ->
                                         proplists:get_value(dip, PropList, 0), 
                                         TcpLen),
     TcpChecksum = checksum(psedu_tcp_packet(<<PseduIpHeader/bits, HalfHeader1/bits, 
-                                               0:16/integer-unsigned-big, HalfHeader2/bits>>)),
+                                               0:16, HalfHeader2/bits>>)),
     <<HalfHeader1/bits, TcpChecksum:16/integer-unsigned-big, HalfHeader2/bits>>.
 
 
-%% del 用build_ip_packet替换
-build_ip_pak(SrcIP, DstIP, ID, Flags, Protocol, Payload) ->
-    HeadLen4Byte = 5,
-    TotalLenByte = (HeadLen4Byte * 4) + byte_size(Payload),
-    {S1, S2, S3, S4} = SrcIP,
-    {D1, D2, D3, D4} = DstIP,
-
-    CRC = checksum(<<?IPV4:4, HeadLen4Byte:4, 0:8, TotalLenByte:16/integer-unsigned-big,
-                     ID:16/integer-unsigned-big, Flags:3, 0:13/integer-unsigned-big,
-                     64:8, Protocol:8, 0:16/integer-unsigned-big,
-                     S1:8, S2:8, S3:8, S4:8,
-                     D1:8, D2:8, D3:8, D4:8>>),
-    <<?IPV4:4, HeadLen4Byte:4, 0:8, TotalLenByte:16/integer-unsigned-big,
-      ID:16/integer-unsigned-big, Flags:3, 0:13/integer-unsigned-big,
-      64:8, Protocol:8, CRC:16/integer-unsigned-big,
-      S1:8, S2:8, S3:8, S4:8,
-      D1:8, D2:8, D3:8, D4:8,
-      Payload/bits>>.
+build_ip_packet(PropList) ->
+    {Sip1, Sip2, Sip3, Sip4} =  (proplists:get_value(sip, PropList, {0, 0, 0, 0})),
+    {Dip1, Dip2, Dip3, Dip4} =  (proplists:get_value(dip, PropList, {0, 0, 0, 0})),
+    Payload = proplists:get_value(payload, PropList, <<>>),
+    HeaderLen = 5,
+    TotalLenByte = (HeaderLen * 4) + byte_size(Payload),
+    HalfHeader1 = <<(proplists:get_value(version, PropList, ?IPV4)):4,
+                    HeaderLen:4,
+                    (proplists:get_value(tos, PropList, 0)):8,
+                    TotalLenByte:16/integer-unsigned-big,
+                    (proplists:get_value(id, PropList, 0)):16/integer-unsigned-big,
+                    (proplists:get_value(flags, PropList, 0)):3,
+                    (proplists:get_value(frag_offset, PropList, 0)):13/integer-unsigned-big,
+                    (proplists:get_value(ttl, PropList, ?TTL)):8,
+                    (proplists:get_value(proto, PropList, ?PROT_TCP)):8>>,
+    HalfHeader2 = <<Sip1:8, Sip2:8, Sip3:8, Sip4:8, Dip1:8, Dip2:8, Dip3:8, Dip4:8>>,
+    Checksum = checksum(<<HalfHeader1/bits, 0:16, HalfHeader2/bits>>),
+    <<HalfHeader1/bits, Checksum:16/integer-unsigned-big, HalfHeader2/bits, Payload/binary>>.
 
 
 %% build_eth_pak(SrcMAC, DstMAC, Type, Payload) ->
@@ -192,7 +192,7 @@ build_ip_pak(SrcIP, DstIP, ID, Flags, Protocol, Payload) ->
 %%        true ->
 %%             Packet
 %%     end.
-build_eth_pak(SrcMAC, DstMAC, Type, Payload) ->
+build_eth_packet(SrcMAC, DstMAC, Type, Payload) ->
     <<DstMAC:48/bits, SrcMAC:48/bits, Type:16/integer-unsigned-big, 
       Payload/bits>>.
 
