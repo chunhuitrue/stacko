@@ -31,7 +31,7 @@
          decode_ip/2,
          decode_icmp/2,
          decode_tcp/2,
-         build_tcp_pak/14,
+         build_tcp_packet/1,
          build_ip_pak/6,
          nic_mac/1,
          build_eth_pak/4]).
@@ -133,28 +133,34 @@ psedu_tcp_packet(Packet) ->
         end.
 
 
-build_tcp_pak(Sip, Dip, Sport, Dport, SeqNum, AckNum, URG, ACK, PSH, RST, SYN, FIN, 
-              WinSize, Payload) ->
-    TcpHeaderLen = 5,
+build_tcp_packet(PropList) ->
     UrgentPointer = 0,
-    Reserved = 0,
+    TcpHeaderLen = 5,
+    Payload = proplists:get_value(payload, PropList, <<>>),
     TcpLen = (TcpHeaderLen * 4) + byte_size(Payload),
-
-    HalfHeader1 = <<Sport:16/integer-unsigned-big, Dport:16/integer-unsigned-big,
-                    SeqNum:32/integer-unsigned-big,
-                    AckNum:32/integer-unsigned-big,
-                    TcpHeaderLen:4, Reserved:6, URG:1, ACK:1, PSH:1, RST:1, SYN:1, FIN:1, 
-                    WinSize:16/integer-unsigned-big>>,
+    HalfHeader1 = <<(proplists:get_value(sport, PropList, 0)):16/integer-unsigned-big, 
+                    (proplists:get_value(dport, PropList, 0)):16/integer-unsigned-big, 
+                    (proplists:get_value(seq_num, PropList, 0)):32/integer-unsigned-big,
+                    (proplists:get_value(ack_num, PropList, 0)):32/integer-unsigned-big,
+                    TcpHeaderLen:4, 
+                    (proplists:get_value(reserved, PropList, 0)):6, 
+                    (proplists:get_value(urg, PropList, 0)):1, 
+                    (proplists:get_value(ack, PropList, 0)):1, 
+                    (proplists:get_value(psh, PropList, 0)):1, 
+                    (proplists:get_value(rst, PropList, 0)):1, 
+                    (proplists:get_value(syn, PropList, 0)):1, 
+                    (proplists:get_value(fin, PropList, 0)):1, 
+                    (proplists:get_value(win_size, PropList, 0)):16/integer-unsigned-big>>,
     HalfHeader2 = <<UrgentPointer:16/integer-unsigned-big, Payload/binary>>,
-    PseduIpHeader = psedu_ip_tcp_header(Sip, Dip, TcpLen),
-    TcpChecksum = checksum(psedu_tcp_packet(<<PseduIpHeader/bits, 
-                                               HalfHeader1/bits, 
-                                               0:16/integer-unsigned-big, 
-                                               HalfHeader2/bits>>)),
-
+    PseduIpHeader = psedu_ip_tcp_header(proplists:get_value(sip, PropList, 0), 
+                                        proplists:get_value(dip, PropList, 0), 
+                                        TcpLen),
+    TcpChecksum = checksum(psedu_tcp_packet(<<PseduIpHeader/bits, HalfHeader1/bits, 
+                                               0:16/integer-unsigned-big, HalfHeader2/bits>>)),
     <<HalfHeader1/bits, TcpChecksum:16/integer-unsigned-big, HalfHeader2/bits>>.
 
 
+%% del 用build_ip_packet替换
 build_ip_pak(SrcIP, DstIP, ID, Flags, Protocol, Payload) ->
     HeadLen4Byte = 5,
     TotalLenByte = (HeadLen4Byte * 4) + byte_size(Payload),

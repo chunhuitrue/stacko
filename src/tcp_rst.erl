@@ -43,11 +43,13 @@ handle_cast({syn_no_listen, Packet}, State) ->
         {error, _Reason} ->
             ok;
         {ok, PakInfo} ->
-            RetTcpPak = tcp:build_tcp_pak(?PAKINFO.dip, ?PAKINFO.sip, 
-                                          ?PAKINFO.tcp_dport, ?PAKINFO.tcp_sport,
-                                          0, ?PAKINFO.seq_num + 1,
-                                          0, 1, 0, 1, 0, 0, 
-                                          0, <<>>),
+            RetTcpPak = tcp:build_tcp_packet([{sip, ?PAKINFO.dip}, 
+                                              {dip, ?PAKINFO.sip},
+                                              {sport, ?PAKINFO.tcp_dport}, 
+                                              {dport, ?PAKINFO.tcp_sport},
+                                              {ack_num, ?PAKINFO.seq_num + 1},
+                                              {ack, 1},
+                                              {rst, 1}]),
             RetIpPak = tcp:build_ip_pak(?PAKINFO.dip, ?PAKINFO.sip, 0, 0, ?PROT_TCP, RetTcpPak),
             case arp:get_dst_mac2(?PAKINFO.sip) of
                 {error, noroute} ->
