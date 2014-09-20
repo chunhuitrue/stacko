@@ -134,9 +134,19 @@ psedu_tcp_packet(Packet) ->
         end.
 
 
+build_tcp_options(PropList) ->
+    MSS = proplists:get_value(mss, PropList, 0),
+    if MSS > 0 ->
+            <<2:8, 4:8, MSS:16/integer-unsigned-big>>;
+        true -> 
+            <<>>
+    end.
+
+
 build_tcp_packet(PropList) ->
     UrgentPointer = 0,
-    TcpHeaderLen = 5,
+    Options = build_tcp_options(PropList),
+    TcpHeaderLen = 5 + (byte_size(Options) div 4),
     Payload = proplists:get_value(payload, PropList, <<>>),
     TcpLen = (TcpHeaderLen * 4) + byte_size(Payload),
     HalfHeader1 = <<(proplists:get_value(sport, PropList, 0)):16/integer-unsigned-big, 
@@ -152,7 +162,7 @@ build_tcp_packet(PropList) ->
                     (proplists:get_value(syn, PropList, 0)):1, 
                     (proplists:get_value(fin, PropList, 0)):1, 
                     (proplists:get_value(win_size, PropList, 0)):16/integer-unsigned-big>>,
-    HalfHeader2 = <<UrgentPointer:16/integer-unsigned-big, Payload/binary>>,
+    HalfHeader2 = <<UrgentPointer:16/integer-unsigned-big, Options/binary, Payload/binary>>,
     PseduIpHeader = psedu_ip_tcp_header(proplists:get_value(sip, PropList, 0), 
                                         proplists:get_value(dip, PropList, 0), 
                                         TcpLen),
