@@ -124,7 +124,7 @@ handle_cast({packet, Packet}, State) ->
         {error, _Reason} ->
             {noreply, State};
         {ok, PakInfo} ->
-            if 
+            if  
                 ?PAKINFO.syn == 1, ?STATE.state == closed ->
                     io:format("recv date syn: ~p~n", [?PAKINFO.tcp_data]),
                     NewState = recv_a_syn_packet(PakInfo, State),

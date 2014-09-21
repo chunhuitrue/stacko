@@ -60,7 +60,7 @@ handle_cast({syn_no_listen, Packet}, State) ->
                     ok;
                 {DstMAC, NicName, NicIndex} ->
                     SrcMAC = tcp:nic_mac(NicName),
-                    RetEthPak = tcp:build_eth_packet(SrcMAC, DstMAC, ?TYPE_IP, RetIpPak),
+                    RetEthPak = tcp:build_eth_packet_with(SrcMAC, DstMAC, ?TYPE_IP, RetIpPak),
                     nic_out:send(NicIndex, RetEthPak);
                 _ ->
                     ok
