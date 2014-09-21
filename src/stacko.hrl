@@ -25,7 +25,6 @@
 -define(DISPATCHER_NUM, 3).
 -define(STACK_GC_TIME, 10000).
 
-
 -define(MINI_ETH_FRAME, 60).   % 64 - FCS(4)
 -define(TYPE_ARP, 16#0806).
 -define(TYPE_IP, 16#0800).
@@ -51,10 +50,10 @@
 -define(TCP_WINDOW_SIZE, 4096).
 -define(MSS, 1460).
 
+-define(DEFAULT_BACKLOG, 3).
 
 -define(STATE, State#state).
 -define(PAKINFO, PakInfo#pkinfo).
-
 
 -ifdef(debug).
 -define(DBP(Str), io:format(Str)).

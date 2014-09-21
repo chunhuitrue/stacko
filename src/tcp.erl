@@ -69,11 +69,12 @@ netstat() ->
               stacko_tcp_stack).
 
 
-listen(Port, _Options) ->
+listen(Port, PropList) ->
     case catch gen_server:call(tcp_port_mgr, {assign_tcp_port, Port}) of
         {ok, Port} ->
-            Backlog = 3,
-            tcp_listen_sup:start_child(Port, Backlog, self());
+            tcp_listen_sup:start_child(Port, 
+                                       proplists:get_value(backlog, PropList, ?DEFAULT_BACKLOG),
+                                       self());
         {'EXIT', {noproc, _}} ->
             {error, noproc};
         Ret ->
