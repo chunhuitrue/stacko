@@ -17,43 +17,42 @@
 
 -include("stacko.hrl").
 
--export([listen/2]).
--export([close/1]).
--export([accept/1]).
+-export([listen/2,
+         close/1,
+         accept/1]).
 
--export([init_script/0]).
--export([release_conf/0]).
+-export([init_script/0,
+         release_conf/0]).
 
--export([if_up/1]).
--export([if_down/1]).
--export([arp/0]).
--export([ifcfg/3]).
--export([route/1]).
--export([route/2]).
--export([route/6]).
--export([ping/1]).
--export([netstat/0]).
+-export([if_up/1,
+         if_down/1,
+         arp/0,
+         ifcfg/3,
+         route/1,
+         route/2,
+         route/6,
+         ping/1,
+         netstat/0]).
 
--export([mac_to_binary/1]).
--export([get_ip_from_nic/1]).
--export([get_num_ip/1]).
--export([checksum/1]).
--export([cyc_inc_32/1]).
--export([cyc_inc_16/1]).
--export([make_eth_packet/4]).
--export([make_ip_packet/6]).
--export([nic_mac/1]).
--export([milli_second/0]).
+-export([mac_to_binary/1,
+         get_ip_from_nic/1,
+         get_num_ip/1,
+         checksum/1,
+         cyc_inc_32/1,
+         cyc_inc_16/1,
+         make_eth_packet/4,
+         make_ip_packet/6,
+         nic_mac/1,
+         milli_second/0]).
 
--export([test_arp/0]).
--export([test_ping/0]).
--export([test_no_ping/0]).
--export([test_server/0]).
-
+-export([test_arp/0,
+         test_ping/0,
+         test_no_ping/0,
+         test_server/0]).
 
 
 test_server() ->
-    {ok, Socket} = stacko:listen(80, []),
+    {ok, Socket} = stacko:listen(88, []),
     io:format("listen socket: ~p~n", [Socket]).
 
 

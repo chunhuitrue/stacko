@@ -42,12 +42,14 @@
 -define(IPV4, 4).
 -define(TTL, 64).
 
+-define(PROT_UDP, 17).
 -define(PROT_ICMP, 1).
 -define(PROT_TCP, 6).
 -define(TCP_OPTION_END, 0).
 -define(TCP_OPTION_NOP, 1).
 -define(TCP_OPTION_MSS, 2).
--define(PROT_UDP, 17).
+-define(TCP_WINDOW_SIZE, 4096).
+-define(MSS, 1460).
 
 
 -define(STATE, State#state).

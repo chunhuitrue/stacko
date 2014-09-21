@@ -32,7 +32,8 @@
 -record(state, {listenpid, userpid, userref, 
                 localip, localport, opposite_ip, opposite_port,
                 init_seq, state,
-                opposite_mss}).
+                opposite_mss,
+                self_mac, opposite_mac}).
 
 
 close(Localip, Localport, RemoteIp, Remoteport) ->
@@ -41,13 +42,41 @@ close(Localip, Localport, RemoteIp, Remoteport) ->
     exit(normal).
 
 
+send_packet(Sip, Dip, TcpPacket) ->
+    IpPacket = tcp:build_ip_packet([{sip, Sip},
+                                    {dip, Dip},
+                                    {payload, TcpPacket}]),
+    case arp:get_dst_mac2(Dip) of
+        {error, noroute} ->
+            {error, noroute};
+        {error, A, B} ->
+            {error, A, B};
+        {DstMAC, NicName, NicIndex} ->
+            SrcMAC = tcp:nic_mac(NicName),
+            EthPacket = tcp:build_eth_packet(SrcMAC, DstMAC, ?TYPE_IP, IpPacket),
+            nic_out:send(NicIndex, EthPacket);
+        _ ->
+            {error, unknown}
+    end.
+    
+
 recv_a_syn_packet(PakInfo, State) ->
     tables:insert_stack({?PAKINFO.sip, ?PAKINFO.tcp_sport, ?PAKINFO.dip, ?PAKINFO.tcp_dport},
                        self()),
     gen_server:cast(tcp_port_mgr, {inc_ref, ?PAKINFO.tcp_dport}),
-    gen_server:cast(?STATE.listenpid, {ready_accept, self()}),
+    %% gen_server:cast(?STATE.listenpid, {ready_accept, self()}),
 
-    %% send syn ack
+    SynAckPacket = tcp:build_tcp_packet([{sip, ?PAKINFO.dip},
+                                         {dip, ?PAKINFO.sip},
+                                         {sport, ?PAKINFO.tcp_dport},
+                                         {dport, ?PAKINFO.tcp_sport},
+                                         {seq_num, ?STATE.init_seq},
+                                         {ack_num, ?PAKINFO.seq_num + 1},
+                                         {ack, 1},
+                                         {syn, 1},
+                                         {win_size, ?TCP_WINDOW_SIZE},
+                                         {mss, ?MSS}]),
+    send_packet(?PAKINFO.dip, ?PAKINFO.sip, SynAckPacket),
 
     ?STATE{localip = ?PAKINFO.dip,
            localport = ?PAKINFO.tcp_dport,
