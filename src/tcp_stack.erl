@@ -30,10 +30,15 @@
          check_alive/1]).
 
 -record(state, {listenpid, userpid, userref, 
-                localip, localport, opposite_ip, opposite_port,
-                init_seq, state,
+                localip, 
+                localport, 
+                init_seq, 
+                self_mac, 
+                state,
+                opposite_ip, 
+                opposite_port,
                 opposite_mss,
-                self_mac, opposite_mac}).
+                opposite_mac}).
 
 
 close(Localip, Localport, RemoteIp, Remoteport) ->
@@ -64,7 +69,6 @@ recv_a_syn_packet(PakInfo, State) ->
     tables:insert_stack({?PAKINFO.sip, ?PAKINFO.tcp_sport, ?PAKINFO.dip, ?PAKINFO.tcp_dport},
                        self()),
     gen_server:cast(tcp_port_mgr, {inc_ref, ?PAKINFO.tcp_dport}),
-    %% gen_server:cast(?STATE.listenpid, {ready_accept, self()}),
 
     SynAckPacket = tcp:build_tcp_packet([{sip, ?PAKINFO.dip},
                                          {dip, ?PAKINFO.sip},
@@ -84,6 +88,18 @@ recv_a_syn_packet(PakInfo, State) ->
            opposite_port = ?PAKINFO.tcp_sport,
            state = syn_recvd,
            opposite_mss = ?PAKINFO.mss}.
+
+
+send_ack(PakInfo) ->
+    AckPak = tcp:build_tcp_packet([{sip, ?PAKINFO.dip},
+                                   {dip, ?PAKINFO.sip},
+                                   {sport, ?PAKINFO.tcp_dport},
+                                   {dport, ?PAKINFO.tcp_sport},
+                                   {seq_num, 1},
+                                   {ack_num, ?PAKINFO.seq_num + byte_size(?PAKINFO.tcp_data)},
+                                   {ack, 1},
+                                   {win_size, ?TCP_WINDOW_SIZE}]),
+    send_packet(?PAKINFO.dip, ?PAKINFO.sip, AckPak).
 
 
 %% remote address: Sip Sport
@@ -108,9 +124,21 @@ handle_cast({packet, Packet}, State) ->
         {error, _Reason} ->
             {noreply, State};
         {ok, PakInfo} ->
-            if ?PAKINFO.syn == 1, ?STATE.state == closed ->
+            if 
+                ?PAKINFO.syn == 1, ?STATE.state == closed ->
+                    io:format("recv date syn: ~p~n", [?PAKINFO.tcp_data]),
                     NewState = recv_a_syn_packet(PakInfo, State),
                     {noreply, NewState};
+                ?PAKINFO.ack_num == ?STATE.init_seq + 1, ?STATE.state == syn_recvd ->
+                    io:format("recv date ack: ~p~n", [?PAKINFO.tcp_data]),
+                    io:format("established~n"),
+                    gen_server:cast(?STATE.listenpid, {ready_accept, self()}),
+                    {noreply, ?STATE{state = established}};
+                byte_size(?PAKINFO.tcp_data) > 0 ->
+                    send_ack(PakInfo),
+                    io:format("recv date data: ~p~n", [?PAKINFO.tcp_data]),
+                    timer:sleep(100),
+                    {noreply, State};
                true ->
                     {noreply, State}
             end

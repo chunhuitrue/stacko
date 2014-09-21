@@ -253,7 +253,6 @@ decode_tcp(TcpPacket, PakInfo) ->
                                 ack = ACK, rst = RST, syn = SYN, fin = FIN,
                                 window_size = WinSize, tcp_packet = TcpPacket,
                                 tcp_data = Data},
-
             case HeaderLenBytes > 20 of
                 true ->
                     decode_tcp_options(TcpRest, PakInfo2);
@@ -270,9 +269,9 @@ decode_icmp(_IcmpPacket, _PakInfo) ->
 
 
 decode_ip(IpPacket, PakInfo) ->
-    <<Version:4, HeaderLen:4, Packet/bits>> = IpPacket, 
-    IpHeaderLenBits = HeaderLen * 4 * 8,
-    <<IpHeader:IpHeaderLenBits/bits, _Rest/bits>> = IpPacket,
+    <<Version:4, HeaderLen:4, Packet/binary>> = IpPacket, 
+    IpHeaderLenBytes = HeaderLen * 4,
+    <<IpHeader:IpHeaderLenBytes/binary, _/binary>> = IpPacket,
     case checksum(IpHeader) of
         0 ->
             case Version of
@@ -282,8 +281,10 @@ decode_ip(IpPacket, PakInfo) ->
                       _TTL:8, Protocol:8, _Checksum:16,  
                       Sip1:8, Sip2:8, Sip3:8, Sip4:8,
                       Dip1:8, Dip2:8, Dip3:8, Dip4:8,
-                      IpPayload/binary>> = Packet,
+                      Rest/binary>> = Packet,
 
+                    PayloadLen = TotalLen - IpHeaderLenBytes,
+                    <<IpPayload:PayloadLen/binary, _/binary>> = Rest,
                     PakInfo2 = PakInfo#pkinfo{ip_version = Version, 
                                               ip_header_len = HeaderLen, 
                                               ip_total_len = TotalLen,
@@ -291,7 +292,6 @@ decode_ip(IpPacket, PakInfo) ->
                                               sip = {Sip1, Sip2, Sip3, Sip4},
                                               dip = {Dip1, Dip2, Dip3, Dip4},
                                               ip_packet = IpPacket},
-
                     case Protocol of 
                         ?PROT_ICMP ->
                             decode_icmp(IpPayload, PakInfo2);
