@@ -32,7 +32,7 @@
 -record(state, {listenpid, 
                 userpid, 
                 userref, 
-                active,
+                opt_active,
                 localip, 
                 localport, 
                 init_seq, 
@@ -172,14 +172,14 @@ handle_call(query_state, _From, State) ->
 handle_call({active, _, UserPid}, _From, State) when ?STATE.userpid =/= UserPid ->
     {reply, {error, permission_denied}, State};
 handle_call({active, true, _UserPid}, _From, State) ->
-    {reply, ok, ?STATE{active = true}};
+    {reply, ok, ?STATE{opt_active = true}};
 handle_call({active, false, _UserPid}, _From, State) ->
-    {reply, ok, ?STATE{active = false}};
+    {reply, ok, ?STATE{opt_active = false}};
 handle_call({active, once, _UserPid}, From, State) ->
     gen_server:reply(From, ok),
     %% 如果有数据可发，就发送数据。直接返回state
     %% 如果没有数据发，返回active once true
-    {noreply, ?STATE{active = once}}.
+    {noreply, ?STATE{opt_active = once}}.
 
 
 handle_info(timeout, State) ->
