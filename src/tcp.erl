@@ -22,7 +22,8 @@
 
 -export([listen/2,
          accept/1,
-         close/1]).
+         close/1,
+         setopts/2]).
 
 -export([port_is_listening/1,
          checksum/1,
@@ -91,6 +92,17 @@ accept(ListenSocket) ->
             {ok, StackPid};
         _Ret ->
             error
+    end.
+
+
+setopts(Socket, PropList) ->
+    case catch gen_server:call(Socket, 
+                               {active, proplists:get_value(active, PropList, true), 
+                                self()}) of
+        {'EXIT', {noproc, _}} ->
+            {error, closed};
+        ok ->
+            ok
     end.
 
 

@@ -19,7 +19,8 @@
 
 -export([listen/2,
          close/1,
-         accept/1]).
+         accept/1,
+         setopts/2]).
 
 -export([init_script/0,
          release_conf/0]).
@@ -66,6 +67,10 @@ close(Socket) ->
 
 accept(Socket) ->
     tcp:accept(Socket).
+
+
+setopts(Socket, PropList) ->
+    tcp:setopts(Socket, PropList).
 
 
 init_script() ->
