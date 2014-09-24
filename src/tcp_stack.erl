@@ -38,10 +38,10 @@
                 init_seq, 
                 self_mac, 
                 state,
-                opposite_ip, 
-                opposite_port,
-                opposite_mss,
-                opposite_mac}).
+                peer_ip, 
+                peer_port,
+                peer_mss,
+                peer_mac}).
 
 
 close(Localip, Localport, RemoteIp, Remoteport) ->
@@ -87,10 +87,10 @@ recv_a_syn_packet(PakInfo, State) ->
 
     ?STATE{localip = ?PAKINFO.dip,
            localport = ?PAKINFO.tcp_dport,
-           opposite_ip = ?PAKINFO.sip,
-           opposite_port = ?PAKINFO.tcp_sport,
+           peer_ip = ?PAKINFO.sip,
+           peer_port = ?PAKINFO.tcp_sport,
            state = syn_recvd,
-           opposite_mss = ?PAKINFO.mss}.
+           peer_mss = ?PAKINFO.mss}.
 
 
 send_ack(PakInfo) ->
@@ -150,14 +150,14 @@ handle_cast({packet, Packet}, State) ->
 
 handle_call(listen_close, From, State) ->
     gen_server:reply(From, ok),
-    close(?STATE.localip, ?STATE.localport, ?STATE.opposite_ip, ?STATE.opposite_port),
+    close(?STATE.localip, ?STATE.localport, ?STATE.peer_ip, ?STATE.peer_port),
     {noreply, ?STATE{state = fin_wait_1}};
 
 
 handle_call({close, UserPid}, From, State) when ?STATE.userpid == UserPid ->
     gen_server:reply(From, ok),
     erlang:demonitor(?STATE.userref),
-    close(?STATE.localip, ?STATE.localport, ?STATE.opposite_ip, ?STATE.opposite_port),
+    close(?STATE.localip, ?STATE.localport, ?STATE.peer_ip, ?STATE.peer_port),
     {noreply, ?STATE{userpid = null,
                      userref = null,
                      state = fin_wait_1}};
@@ -192,7 +192,7 @@ handle_info(timeout, State) ->
 handle_info({'DOWN', _Ref, process, _Pid, _Reason}, State) ->
     ?DBP("tcp_stack: ~p. user app is donw.~n", [self()]),
     erlang:demonitor(?STATE.userref),
-    close(?STATE.localip, ?STATE.localport, ?STATE.opposite_ip, ?STATE.opposite_port),
+    close(?STATE.localip, ?STATE.localport, ?STATE.peer_ip, ?STATE.peer_port),
     {noreply, ?STATE{userpid = null,
                      userref = null,
                      state = fin_wait_1}}.
