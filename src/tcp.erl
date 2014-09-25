@@ -266,7 +266,7 @@ decode_tcp(TcpPacket, PakInfo) ->
                                 ack = ACK, rst = RST, syn = SYN, fin = FIN,
                                 window_size = WinSize, tcp_packet = TcpPacket,
                                 tcp_data = Data},
-            case HeaderLenBytes > 20 of
+            case HeaderLenBytes > ?TCP_BASE_HEADER_LEN of
                 true ->
                     decode_tcp_options(TcpRest, PakInfo2);
                 false ->

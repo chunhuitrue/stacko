@@ -44,6 +44,7 @@
 -define(PROT_UDP, 17).
 -define(PROT_ICMP, 1).
 -define(PROT_TCP, 6).
+-define(TCP_BASE_HEADER_LEN, 20).
 -define(TCP_OPTION_END, 0).
 -define(TCP_OPTION_NOP, 1).
 -define(TCP_OPTION_MSS, 2).
