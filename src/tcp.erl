@@ -277,7 +277,6 @@ decode_tcp(TcpPacket, PakInfo) ->
         end.
 
 
-
 decode_icmp(_IcmpPacket, _PakInfo) ->
     {error, noicmp}.
 
